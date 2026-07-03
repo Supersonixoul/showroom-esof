@@ -1,0 +1,142 @@
+import type {
+  Brand,
+  Category,
+  Product,
+  ProductImage,
+  ProductSpec,
+  PromoVideo,
+  UploadResult,
+} from './types';
+
+export const API_URL = 'http://localhost:3000';
+
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      ...(options?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...options?.headers,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`${res.status} ${res.statusText}: ${text}`);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+// ---- Brands -----------------------------------------------------------
+
+export const brandsApi = {
+  list: () => request<Brand[]>('/brands'),
+  create: (data: Partial<Brand>) =>
+    request<Brand>('/brands', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<Brand>) =>
+    request<Brand>(`/brands/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  remove: (id: string) => request<void>(`/brands/${id}`, { method: 'DELETE' }),
+};
+
+// ---- Categories ---------------------------------------------------------
+
+export const categoriesApi = {
+  list: () => request<Category[]>('/categories'),
+  create: (data: Partial<Category>) =>
+    request<Category>('/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<Category>) =>
+    request<Category>(`/categories/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  remove: (id: string) =>
+    request<void>(`/categories/${id}`, { method: 'DELETE' }),
+};
+
+// ---- Products -----------------------------------------------------------
+
+export const productsApi = {
+  list: () => request<Product[]>('/products'),
+  get: (id: string) => request<Product>(`/products/${id}`),
+  create: (data: Partial<Product>) =>
+    request<Product>('/products', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<Product>) =>
+    request<Product>(`/products/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  remove: (id: string) =>
+    request<void>(`/products/${id}`, { method: 'DELETE' }),
+  addSpec: (productId: string, data: { label: string; value: string }) =>
+    request<ProductSpec>(`/products/${productId}/specs`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  removeSpec: (productId: string, specId: string) =>
+    request<void>(`/products/${productId}/specs/${specId}`, {
+      method: 'DELETE',
+    }),
+  addImage: (productId: string, data: { url: string; position?: number }) =>
+    request<ProductImage>(`/products/${productId}/images`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  removeImage: (productId: string, imageId: string) =>
+    request<void>(`/products/${productId}/images/${imageId}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ---- Videos -----------------------------------------------------------
+
+export const videosApi = {
+  list: () => request<PromoVideo[]>('/videos'),
+  create: (data: Partial<PromoVideo>) =>
+    request<PromoVideo>('/videos', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<PromoVideo>) =>
+    request<PromoVideo>(`/videos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  remove: (id: string) => request<void>(`/videos/${id}`, { method: 'DELETE' }),
+};
+
+// ---- Media (upload) -----------------------------------------------------
+
+export async function uploadMedia(file: File): Promise<UploadResult> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${API_URL}/media/upload`, {
+    method: 'POST',
+    body: form,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`${res.status} ${res.statusText}: ${text}`);
+  }
+  return res.json() as Promise<UploadResult>;
+}
+
+export function mediaUrl(url: string) {
+  return url.startsWith('http') ? url : `${API_URL}${url}`;
+}
+
+// ---- Catalog (sync indicator) --------------------------------------------
+
+export const catalogApi = {
+  full: () =>
+    request<{ syncedAt: string; brands: Brand[]; categories: Category[]; products: Product[]; promoVideos: PromoVideo[] }>(
+      '/catalog/full',
+    ),
+};

@@ -1,0 +1,179 @@
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { categoriesApi } from '../api/client';
+import type { Category } from '../api/types';
+
+export function CategoriesPage() {
+  const queryClient = useQueryClient();
+  const { data: categories, isLoading, error } = useQuery({
+    queryKey: ['categories'],
+    queryFn: categoriesApi.list,
+  });
+
+  const [name, setName] = useState('');
+  const [parentId, setParentId] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ['categories'] });
+
+  const createMutation = useMutation({
+    mutationFn: categoriesApi.create,
+    onSuccess: () => {
+      invalidate();
+      resetForm();
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Category> }) =>
+      categoriesApi.update(id, data),
+    onSuccess: () => {
+      invalidate();
+      resetForm();
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: categoriesApi.remove,
+    onSuccess: invalidate,
+  });
+
+  function resetForm() {
+    setName('');
+    setParentId('');
+    setEditingId(null);
+  }
+
+  function startEdit(category: Category) {
+    setEditingId(category.id);
+    setName(category.name);
+    setParentId(category.parentId ?? '');
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const data = { name, parentId: parentId || undefined };
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  }
+
+  const saving = createMutation.isPending || updateMutation.isPending;
+  const mutationError = createMutation.error || updateMutation.error;
+  const removeError = removeMutation.error;
+
+  function parentName(id: string | null | undefined) {
+    if (!id) return '—';
+    return categories?.find((c) => c.id === id)?.name ?? '—';
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>Catégories</h2>
+      </div>
+
+      {error && (
+        <div className="error-banner">Impossible de charger les catégories.</div>
+      )}
+      {mutationError && (
+        <div className="error-banner">{(mutationError as Error).message}</div>
+      )}
+      {removeError && (
+        <div className="error-banner">{(removeError as Error).message}</div>
+      )}
+
+      <form className="form-panel" onSubmit={handleSubmit}>
+        <div className="form-row">
+          <label>
+            Nom
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </label>
+          <label>
+            Catégorie parente
+            <select
+              value={parentId}
+              onChange={(e) => setParentId(e.target.value)}
+            >
+              <option value="">Aucune (racine)</option>
+              {categories
+                ?.filter((c) => c.id !== editingId)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+        </div>
+        <div className="actions">
+          <button type="submit" className="primary" disabled={saving}>
+            {editingId ? 'Enregistrer' : 'Ajouter'}
+          </button>
+          {editingId && (
+            <button type="button" onClick={resetForm}>
+              Annuler
+            </button>
+          )}
+        </div>
+      </form>
+
+      {isLoading ? (
+        <p className="muted">Chargement…</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Parente</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {categories?.map((category) => (
+              <tr key={category.id}>
+                <td>{category.name}</td>
+                <td className="muted">{parentName(category.parentId)}</td>
+                <td>
+                  <div className="actions">
+                    <button onClick={() => startEdit(category)}>
+                      Modifier
+                    </button>
+                    <button
+                      className="danger"
+                      onClick={() => {
+                        if (
+                          confirm(
+                            `Supprimer la catégorie "${category.name}" ?`,
+                          )
+                        ) {
+                          removeMutation.mutate(category.id);
+                        }
+                      }}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {categories?.length === 0 && (
+              <tr>
+                <td colSpan={3} className="muted">
+                  Aucune catégorie.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}

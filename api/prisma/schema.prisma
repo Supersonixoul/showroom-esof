@@ -1,0 +1,186 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider      = "prisma-client"
+  output        = "../generated/prisma"
+  moduleFormat  = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Catalogue (v1) — proposition de schéma, à valider/ajuster avec ESOF.
+// ---------------------------------------------------------------------------
+
+model Brand {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  logoUrl   String?   @map("logo_url")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  products  Product[]
+
+  @@map("brands")
+}
+
+model Category {
+  id       String     @id @default(uuid()) @db.Uuid
+  name     String
+  parentId String?    @map("parent_id") @db.Uuid
+  parent   Category?  @relation("CategoryToParent", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryToParent")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  products  Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  reference   String?  @unique
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+
+  brandId    String   @map("brand_id") @db.Uuid
+  brand      Brand    @relation(fields: [brandId], references: [id])
+  categoryId String   @map("category_id") @db.Uuid
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  specs      ProductSpec[]
+  images     ProductImage[]
+  quoteItems QuoteItem[]
+
+  @@map("products")
+}
+
+/// Caractéristique technique libre (clé/valeur), ex. "Puissance" / "60W".
+/// Sert aussi de source pour le menu de navigation "Caractéristiques".
+model ProductSpec {
+  id        String  @id @default(uuid()) @db.Uuid
+  productId String  @map("product_id") @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  label     String
+  value     String
+
+  @@map("product_specs")
+}
+
+model ProductImage {
+  id        String  @id @default(uuid()) @db.Uuid
+  productId String  @map("product_id") @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  position  Int     @default(0)
+
+  @@map("product_images")
+}
+
+/// Vidéos publicitaires diffusées en boucle en mode ordinaire (app TV).
+model PromoVideo {
+  id        String   @id @default(uuid()) @db.Uuid
+  title     String
+  url       String
+  position  Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("promo_videos")
+}
+
+// ---------------------------------------------------------------------------
+// Comptes internes, clients, devis (v2)
+// ---------------------------------------------------------------------------
+
+enum Role {
+  ADMIN
+  COMMERCIAL
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  clientsCreated Client[]     @relation("ClientCreatedBy")
+  clientNotes    ClientNote[]
+  quotes         Quote[]
+
+  @@map("users")
+}
+
+model Client {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  phone     String
+  email     String?
+  company   String?
+  createdBy String   @map("created_by") @db.Uuid
+  creator   User     @relation("ClientCreatedBy", fields: [createdBy], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+
+  notes  ClientNote[]
+  quotes Quote[]
+
+  @@map("clients")
+}
+
+model ClientNote {
+  id           String   @id @default(uuid()) @db.Uuid
+  clientId     String   @map("client_id") @db.Uuid
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  commercialId String   @map("commercial_id") @db.Uuid
+  commercial   User     @relation(fields: [commercialId], references: [id])
+  note         String
+  visitDate    DateTime @map("visit_date")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("client_notes")
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+}
+
+model Quote {
+  id           String      @id @default(uuid()) @db.Uuid
+  clientId     String      @map("client_id") @db.Uuid
+  client       Client      @relation(fields: [clientId], references: [id])
+  commercialId String      @map("commercial_id") @db.Uuid
+  commercial   User        @relation(fields: [commercialId], references: [id])
+  status       QuoteStatus @default(DRAFT)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  items QuoteItem[]
+
+  @@map("quotes")
+}
+
+model QuoteItem {
+  id        String  @id @default(uuid()) @db.Uuid
+  quoteId   String  @map("quote_id") @db.Uuid
+  quote     Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  productId String  @map("product_id") @db.Uuid
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal @map("unit_price") @db.Decimal(12, 2)
+  note      String?
+
+  @@map("quote_items")
+}
