@@ -13,6 +13,7 @@ import { CatalogModule } from './catalog/catalog.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ClientsModule } from './clients/clients.module';
+import { QuotesModule } from './quotes/quotes.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ClientsModule } from './clients/clients.module';
     AuthModule,
     UsersModule,
     ClientsModule,
+    QuotesModule,
     BrandsModule,
     CategoriesModule,
     ProductsModule,
