@@ -10,6 +10,9 @@ import { ProductsModule } from './products/products.module';
 import { MediaModule } from './media/media.module';
 import { VideosModule } from './videos/videos.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { ClientsModule } from './clients/clients.module';
 
 @Module({
   imports: [
@@ -18,6 +21,9 @@ import { CatalogModule } from './catalog/catalog.module';
       serveRoot: '/uploads',
     }),
     PrismaModule,
+    AuthModule,
+    UsersModule,
+    ClientsModule,
     BrandsModule,
     CategoriesModule,
     ProductsModule,
