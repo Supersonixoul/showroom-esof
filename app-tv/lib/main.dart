@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'navigation/app_navigation.dart';
 import 'screens/video_carousel_screen.dart';
 
 void main() {
@@ -15,6 +16,9 @@ class ShowroomTvApp extends StatelessWidget {
       title: 'Showroom ESOF - TV',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
+      navigatorKey: appNavigatorKey,
+      navigatorObservers: [catalogRouteObserver],
+      builder: (context, child) => InactivityGuard(child: child!),
       home: const VideoCarouselScreen(),
     );
   }

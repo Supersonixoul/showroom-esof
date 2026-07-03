@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../models/catalog_models.dart';
 import '../models/promo_video.dart';
 
 class ApiService {
@@ -31,5 +32,14 @@ class ApiService {
         .toList();
     videos.sort((a, b) => a.position.compareTo(b.position));
     return videos;
+  }
+
+  Future<CatalogSnapshot> fetchCatalog() async {
+    final response = await http.get(Uri.parse('$baseUrl/catalog/full'));
+    if (response.statusCode != 200) {
+      throw Exception('Erreur API catalogue: ${response.statusCode}');
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return CatalogSnapshot.fromJson(data);
   }
 }
