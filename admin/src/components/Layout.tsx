@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 import { SyncIndicator } from './SyncIndicator';
 
 const links = [
@@ -9,6 +10,8 @@ const links = [
 ];
 
 export function Layout() {
+  const { user, logout } = useAuth();
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -28,6 +31,14 @@ export function Layout() {
         </nav>
         <div className="sidebar-footer">
           <SyncIndicator />
+          {user && (
+            <div style={{ marginTop: 12, fontSize: 13 }}>
+              <div className="muted">{user.name}</div>
+              <button onClick={logout} style={{ marginTop: 6 }}>
+                Se déconnecter
+              </button>
+            </div>
+          )}
         </div>
       </aside>
       <main className="content">

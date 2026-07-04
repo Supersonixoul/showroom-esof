@@ -62,3 +62,15 @@ export interface UploadResult {
   mimetype: string;
   size: number;
 }
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'COMMERCIAL';
+}
+
+export interface LoginResult {
+  accessToken: string;
+  user: AuthUser;
+}
