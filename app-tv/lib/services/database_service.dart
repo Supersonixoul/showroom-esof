@@ -22,17 +22,30 @@ class DatabaseService {
     final path = join(dbPath, 'showroom_tv.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await _createPromoVideosTable(db);
         await _createCatalogTables(db);
+        await _createSyncMetaTable(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await _createCatalogTables(db);
         }
+        if (oldVersion < 3) {
+          await _createSyncMetaTable(db);
+        }
       },
     );
+  }
+
+  Future<void> _createSyncMetaTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sync_meta (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<void> _createPromoVideosTable(Database db) async {
@@ -132,6 +145,55 @@ class DatabaseService {
         }
       }
     });
+  }
+
+  /// Fusionne un lot différentiel (`/catalog/sync`) dans le cache local : les
+  /// marques/catégories/produits touchés sont mis à jour en place (upsert),
+  /// et pour chaque produit modifié, ses spécifications/images sont
+  /// entièrement remplacées (l'API renvoie leur état complet, pas leur diff).
+  Future<void> mergeCatalog(CatalogSnapshot diff) async {
+    final db = await _database;
+    await db.transaction((txn) async {
+      for (final brand in diff.brands) {
+        await txn.insert('brands', brand.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      for (final category in diff.categories) {
+        await txn.insert('categories', category.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      for (final product in diff.products) {
+        await txn.insert('products', product.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.delete('product_specs',
+            where: 'productId = ?', whereArgs: [product.id]);
+        await txn.delete('product_images',
+            where: 'productId = ?', whereArgs: [product.id]);
+        for (final spec in product.specs) {
+          await txn.insert('product_specs', spec.toMap());
+        }
+        for (final image in product.images) {
+          await txn.insert('product_images', image.toMap());
+        }
+      }
+    });
+  }
+
+  Future<String?> getLastSyncedAt() async {
+    final db = await _database;
+    final rows =
+        await db.query('sync_meta', where: 'key = ?', whereArgs: ['catalogSyncedAt']);
+    if (rows.isEmpty) return null;
+    return rows.first['value'] as String;
+  }
+
+  Future<void> setLastSyncedAt(String value) async {
+    final db = await _database;
+    await db.insert(
+      'sync_meta',
+      {'key': 'catalogSyncedAt', 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<CatalogSnapshot> getCatalog() async {

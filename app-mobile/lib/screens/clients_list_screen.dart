@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/commercial_models.dart';
 import '../services/auth_session.dart';
 import '../services/commercial_api_service.dart';
+import '../services/pending_quote_queue.dart';
 import 'client_detail_screen.dart';
 
 /// Liste des clients avec recherche (spec §5.4, §6.3).
@@ -124,6 +125,21 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
       ),
       body: Column(
         children: [
+          ValueListenableBuilder<int>(
+            valueListenable: PendingQuoteQueue.instance.pendingCount,
+            builder: (context, count, _) {
+              if (count == 0) return const SizedBox.shrink();
+              return Container(
+                width: double.infinity,
+                color: Colors.amber.shade100,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Text(
+                  '$count devis en attente d\'envoi (pas de réseau au moment de la création).',
+                  style: const TextStyle(fontSize: 13),
+                ),
+              );
+            },
+          ),
           Padding(
             padding: const EdgeInsets.all(12),
             child: TextField(

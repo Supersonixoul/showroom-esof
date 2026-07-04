@@ -183,7 +183,8 @@ class Product {
 }
 
 /// Instantané complet du catalogue (marques, catégories, produits), tel que
-/// renvoyé par `GET /catalog/full` ou reconstruit depuis le cache local.
+/// renvoyé par `GET /catalog/full` ou reconstruit depuis le cache local. Sert
+/// aussi de conteneur pour un lot de différences (`GET /catalog/sync`).
 class CatalogSnapshot {
   final List<Brand> brands;
   final List<Category> categories;
@@ -198,6 +199,8 @@ class CatalogSnapshot {
   static const empty =
       CatalogSnapshot(brands: [], categories: [], products: []);
 
+  bool get isEmpty => brands.isEmpty && categories.isEmpty && products.isEmpty;
+
   factory CatalogSnapshot.fromJson(Map<String, dynamic> json) {
     return CatalogSnapshot(
       brands: (json['brands'] as List<dynamic>)
@@ -211,4 +214,14 @@ class CatalogSnapshot {
           .toList(),
     );
   }
+}
+
+/// Résultat d'un appel `/catalog/full` ou `/catalog/sync` : le lot de données
+/// (complet ou différentiel selon l'appel) et l'horodatage serveur à
+/// conserver comme prochain curseur `since` (spec §2.2, §5.3).
+class CatalogSyncResult {
+  final CatalogSnapshot snapshot;
+  final String syncedAt;
+
+  CatalogSyncResult({required this.snapshot, required this.syncedAt});
 }

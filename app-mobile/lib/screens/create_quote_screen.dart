@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../models/catalog_models.dart';
 import '../services/auth_session.dart';
 import '../services/catalog_repository.dart';
 import '../services/commercial_api_service.dart';
+import '../services/pending_quote_queue.dart';
 import '../services/quote_pdf_share.dart';
 
 class _QuoteLine {
@@ -60,18 +63,19 @@ class _CreateQuoteScreenState extends State<CreateQuoteScreen> {
   Future<void> _submit() async {
     if (_lines.isEmpty) return;
     setState(() => _submitting = true);
+    final items = _lines
+        .map((l) => {
+              'productId': l.product.id,
+              'quantity': l.quantity,
+              'unitPrice': l.unitPrice,
+              if (l.note.isNotEmpty) 'note': l.note,
+            })
+        .toList();
     try {
       final quote = await _api.createQuote(
         _token,
         clientId: widget.clientId,
-        items: _lines
-            .map((l) => {
-                  'productId': l.product.id,
-                  'quantity': l.quantity,
-                  'unitPrice': l.unitPrice,
-                  if (l.note.isNotEmpty) 'note': l.note,
-                })
-            .toList(),
+        items: items,
       );
       try {
         await shareQuotePdf(_token, quote.id);
@@ -81,6 +85,20 @@ class _CreateQuoteScreenState extends State<CreateQuoteScreen> {
         // depuis la fiche client.
       }
       if (mounted) Navigator.of(context).pop(true);
+    } on SocketException catch (_) {
+      // Pas de réseau (spec §6.3, Sprint 10) : le devis est conservé
+      // localement et envoyé automatiquement à la reconnexion.
+      await PendingQuoteQueue.instance.enqueue(
+        clientId: widget.clientId,
+        items: items,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Pas de réseau : devis enregistré, il sera envoyé automatiquement dès la reconnexion.'),
+        ));
+        Navigator.of(context).pop(true);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
