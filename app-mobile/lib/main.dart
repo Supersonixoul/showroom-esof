@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'screens/home_screen.dart';
+import 'services/auth_session.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AuthSession.instance.restore();
   runApp(const MyApp());
 }
 

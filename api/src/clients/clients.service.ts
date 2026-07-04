@@ -34,7 +34,10 @@ export class ClientsService {
       where: { id },
       include: {
         notes: { orderBy: { visitDate: 'desc' } },
-        quotes: { orderBy: { createdAt: 'desc' } },
+        quotes: {
+          orderBy: { createdAt: 'desc' },
+          include: { _count: { select: { items: true } } },
+        },
       },
     });
     if (!client) {

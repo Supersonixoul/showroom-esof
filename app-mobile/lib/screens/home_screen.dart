@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../services/auth_session.dart';
 import '../services/catalog_repository.dart';
 import 'brands_screen.dart';
 import 'categories_screen.dart';
 import 'characteristics_screen.dart';
+import 'clients_list_screen.dart';
+import 'login_screen.dart';
 
 /// Écran d'accueil du mode client (spec §6.2) : accès direct aux trois axes
 /// de navigation du catalogue (Marques / Catégories / Caractéristiques).
@@ -24,7 +27,22 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ESOF Showroom')),
+      appBar: AppBar(
+        title: const Text('ESOF Showroom'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.work_outline),
+            tooltip: 'Espace commercial',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AuthSession.instance.currentUser.value != null
+                    ? const ClientsListScreen()
+                    : const LoginScreen(),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: Center(
         child: Wrap(
           spacing: 24,
