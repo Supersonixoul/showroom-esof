@@ -15,4 +15,10 @@ export class CatalogController {
   getSince(@Query() query: SyncQueryDto) {
     return this.catalogService.getSince(new Date(query.since));
   }
+
+  /// Public — consommé par le kiosque TV (pas de session), spec §5.3.
+  @Get('promo-videos')
+  getActivePromoVideos() {
+    return this.catalogService.getActivePromoVideos();
+  }
 }

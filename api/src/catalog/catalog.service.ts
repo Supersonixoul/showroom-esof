@@ -25,6 +25,19 @@ export class CatalogService {
     };
   }
 
+  /**
+   * Vidéos promotionnelles actives, triées par position — endpoint public
+   * dédié aux kiosques (app-tv), qui n'ont pas de session admin/commercial.
+   * Tri secondaire par `createdAt` pour un ordre déterministe quand toutes
+   * les positions sont à 0 (valeur par défaut).
+   */
+  async getActivePromoVideos() {
+    return this.prisma.promoVideo.findMany({
+      where: { isActive: true },
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
   /** Éléments créés/modifiés depuis `since` — utilisé pour la synchronisation différentielle. */
   async getSince(since: Date) {
     const [brands, categories, products, promoVideos] = await Promise.all([

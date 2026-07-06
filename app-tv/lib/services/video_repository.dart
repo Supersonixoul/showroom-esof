@@ -35,8 +35,9 @@ class VideoRepository {
       final fresh = await _api.fetchActiveVideos();
       await _db.replacePromoVideos(fresh);
       videos.value = fresh;
-    } catch (_) {
-      // API injoignable : on garde le contenu du cache local.
+    } catch (e) {
+      debugPrint('[VideoRepository] Échec du rafraîchissement des vidéos : $e');
+      // API injoignable ou erreur : on garde le contenu du cache local.
     }
   }
 
