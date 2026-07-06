@@ -9,7 +9,11 @@ async function bootstrap() {
     throw new Error('JWT_SECRET manquant dans .env — arrêt du serveur.');
   }
   const app = await NestFactory.create(AppModule);
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
   app.enableCors({
     origin: (process.env.ADMIN_ORIGIN ?? 'http://localhost:5173').split(','),
   });
