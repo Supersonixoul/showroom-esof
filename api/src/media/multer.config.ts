@@ -1,16 +1,38 @@
 import { BadRequestException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { extname } from 'path';
+import { existsSync, mkdirSync } from 'fs';
+import { extname, join } from 'path';
 import { diskStorage } from 'multer';
 import type { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 
 export const UPLOADS_ROOT = 'uploads';
 
+export const ALLOWED_UPLOAD_RESOURCES = ['products', 'promo-videos'] as const;
+export type UploadResource = (typeof ALLOWED_UPLOAD_RESOURCES)[number];
+
 const ALLOWED_MIME_PREFIXES = ['image/', 'video/'];
 
 export const multerConfig: MulterOptions = {
   storage: diskStorage({
-    destination: UPLOADS_ROOT,
+    destination: (req, _file, callback) => {
+      const resource = (req.params as Record<string, string>).resource;
+      if (
+        !ALLOWED_UPLOAD_RESOURCES.includes(resource as UploadResource)
+      ) {
+        callback(
+          new BadRequestException(
+            `Ressource inconnue : ${resource}. Valeurs acceptées : ${ALLOWED_UPLOAD_RESOURCES.join(', ')}`,
+          ),
+          '',
+        );
+        return;
+      }
+      const dir = join(UPLOADS_ROOT, resource);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      callback(null, dir);
+    },
     filename: (_req, file, callback) => {
       callback(null, `${randomUUID()}${extname(file.originalname)}`);
     },

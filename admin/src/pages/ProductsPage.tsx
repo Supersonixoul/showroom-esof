@@ -294,7 +294,7 @@ function ProductDetail({ productId }: { productId: string }) {
     if (!file) return;
     setUploading(true);
     try {
-      const result = await uploadMedia(file);
+      const result = await uploadMedia(file, 'products');
       const position = product?.images?.length ?? 0;
       await addImageMutation.mutateAsync({ url: result.url, position });
     } catch (err) {

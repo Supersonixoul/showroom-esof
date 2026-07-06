@@ -145,10 +145,15 @@ export const videosApi = {
 
 // ---- Media (upload) -----------------------------------------------------
 
-export async function uploadMedia(file: File): Promise<UploadResult> {
+export type UploadResource = 'products' | 'promo-videos';
+
+export async function uploadMedia(
+  file: File,
+  resource: UploadResource,
+): Promise<UploadResult> {
   const form = new FormData();
   form.append('file', file);
-  const res = await fetch(`${API_URL}/media/upload`, {
+  const res = await fetch(`${API_URL}/media/upload/${resource}`, {
     method: 'POST',
     headers: authHeader(),
     body: form,
