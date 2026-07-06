@@ -145,7 +145,7 @@ export const videosApi = {
 
 // ---- Media (upload) -----------------------------------------------------
 
-export type UploadResource = 'products' | 'promo-videos';
+export type UploadResource = 'products' | 'promo-videos' | 'brands';
 
 export async function uploadMedia(
   file: File,
