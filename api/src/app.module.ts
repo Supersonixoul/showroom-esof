@@ -13,6 +13,7 @@ import { ProductsModule } from './products/products.module';
 import { MediaModule } from './media/media.module';
 import { VideosModule } from './videos/videos.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { TvModule } from './tv/tv.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ClientsModule } from './clients/clients.module';
@@ -37,6 +38,7 @@ import { QuotesModule } from './quotes/quotes.module';
     MediaModule,
     VideosModule,
     CatalogModule,
+    TvModule,
   ],
   controllers: [AppController],
   providers: [

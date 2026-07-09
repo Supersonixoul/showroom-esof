@@ -47,6 +47,35 @@ export function VideosPage() {
     onSuccess: invalidate,
   });
 
+  const moveMutation = useMutation({
+    mutationFn: ({ id, direction }: { id: string; direction: 'up' | 'down' }) =>
+      videosApi.move(id, direction),
+    onMutate: async ({ id, direction }) => {
+      await queryClient.cancelQueries({ queryKey: ['videos'] });
+      const previous = queryClient.getQueryData<PromoVideo[]>(['videos']);
+      if (previous) {
+        const index = previous.findIndex((v) => v.id === id);
+        const swapIndex = direction === 'up' ? index - 1 : index + 1;
+        if (index !== -1 && swapIndex >= 0 && swapIndex < previous.length) {
+          const next = [...previous];
+          const a = next[index];
+          const b = next[swapIndex];
+          next[index] = { ...b, position: a.position };
+          next[swapIndex] = { ...a, position: b.position };
+          next.sort((x, y) => x.position - y.position);
+          queryClient.setQueryData(['videos'], next);
+        }
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['videos'], context.previous);
+      }
+    },
+    onSettled: invalidate,
+  });
+
   function resetForm() {
     setTitle('');
     setUrl('');
@@ -129,6 +158,14 @@ export function VideosPage() {
             />
           </label>
         </div>
+        {url && (
+          <video
+            className="video-thumb"
+            src={mediaUrl(url)}
+            controls
+            preload="metadata"
+          />
+        )}
         <div className="actions">
           <button
             type="submit"
@@ -155,6 +192,8 @@ export function VideosPage() {
         <table>
           <thead>
             <tr>
+              <th>Ordre</th>
+              <th>Aperçu</th>
               <th>Titre</th>
               <th>Statut</th>
               <th>Position</th>
@@ -162,13 +201,45 @@ export function VideosPage() {
             </tr>
           </thead>
           <tbody>
-            {videos?.map((video) => (
+            {videos?.map((video, index) => (
               <tr key={video.id}>
                 <td>
-                  <a href={mediaUrl(video.url)} target="_blank" rel="noreferrer">
-                    {video.title}
-                  </a>
+                  <div className="reorder-buttons">
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      disabled={index === 0}
+                      aria-label="Monter"
+                      title="Monter"
+                      onClick={() =>
+                        moveMutation.mutate({ id: video.id, direction: 'up' })
+                      }
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      disabled={index === (videos?.length ?? 0) - 1}
+                      aria-label="Descendre"
+                      title="Descendre"
+                      onClick={() =>
+                        moveMutation.mutate({ id: video.id, direction: 'down' })
+                      }
+                    >
+                      ↓
+                    </button>
+                  </div>
                 </td>
+                <td>
+                  <video
+                    className="video-thumb"
+                    src={mediaUrl(video.url)}
+                    controls
+                    preload="metadata"
+                  />
+                </td>
+                <td>{video.title}</td>
                 <td>
                   <span className={video.isActive ? 'tag' : 'muted'}>
                     {video.isActive ? 'Actif' : 'Inactif'}
@@ -204,7 +275,7 @@ export function VideosPage() {
             ))}
             {videos?.length === 0 && (
               <tr>
-                <td colSpan={4} className="muted">
+                <td colSpan={6} className="muted">
                   Aucune vidéo.
                 </td>
               </tr>

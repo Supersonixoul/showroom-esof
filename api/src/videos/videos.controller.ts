@@ -14,6 +14,7 @@ import {
 import { VideosService } from './videos.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
+import { MoveVideoDto } from './dto/move-video.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -43,6 +44,11 @@ export class VideosController {
   @Patch(':id')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateVideoDto) {
     return this.videosService.update(id, dto);
+  }
+
+  @Patch(':id/move')
+  move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MoveVideoDto) {
+    return this.videosService.move(id, dto);
   }
 
   @Delete(':id')

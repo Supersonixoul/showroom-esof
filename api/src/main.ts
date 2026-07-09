@@ -12,6 +12,14 @@ async function bootstrap() {
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
+      // L'API et la page /tv (navigateur TV) tournent en HTTP simple (pas de
+      // certificat TLS) — sans ce retrait, la CSP par défaut de helmet tente
+      // de forcer les requêtes vers https:// (mixed content), ce qui casse
+      // le chargement de la vidéo (/uploads/...) sur le réseau local.
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: { 'upgrade-insecure-requests': null },
+      },
     }),
   );
   app.enableCors({

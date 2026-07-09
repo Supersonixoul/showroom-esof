@@ -168,6 +168,11 @@ export const videosApi = {
       body: JSON.stringify(data),
     }),
   remove: (id: string) => request<void>(`/videos/${id}`, { method: 'DELETE' }),
+  move: (id: string, direction: 'up' | 'down') =>
+    request<PromoVideo>(`/videos/${id}/move`, {
+      method: 'PATCH',
+      body: JSON.stringify({ direction }),
+    }),
 };
 
 // ---- Media (upload) -----------------------------------------------------

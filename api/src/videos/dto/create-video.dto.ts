@@ -1,11 +1,4 @@
-import {
-  IsBoolean,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Min,
-} from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateVideoDto {
   @IsString()
@@ -15,11 +8,6 @@ export class CreateVideoDto {
   @IsString()
   @IsNotEmpty()
   url: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  position?: number;
 
   @IsOptional()
   @IsBoolean()
