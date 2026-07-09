@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { FindCatalogProductsQueryDto } from './dto/find-catalog-products-query.dto';
 
 @Injectable()
 export class CatalogService {
@@ -59,6 +60,101 @@ export class CatalogService {
       categories,
       products,
       promoVideos,
+    };
+  }
+
+  // ---- Mode « Catalogue produits » du kiosque TV (/tv) — lecture seule ------
+  // Endpoints publics dédiés (pas de session) : réponses allégées, uniquement
+  // les champs utiles à l'affichage TV.
+
+  /** Catégories avec le nombre de produits actifs qu'elles contiennent (pour un état vide propre côté TV). */
+  async getCatalogCategories() {
+    const categories = await this.prisma.category.findMany({
+      orderBy: { name: 'asc' },
+      include: {
+        _count: { select: { products: { where: { isActive: true } } } },
+      },
+    });
+    return categories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      productCount: category._count.products,
+    }));
+  }
+
+  /**
+   * Produits actifs d'une catégorie, paginés, avec filtre marque optionnel.
+   * `brands` liste les marques réellement présentes dans la catégorie
+   * (indépendamment du filtre appliqué) pour peupler les puces côté TV.
+   */
+  async getCatalogProducts(query: FindCatalogProductsQueryDto) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 8;
+    const baseWhere = { categoryId: query.categoryId, isActive: true };
+
+    const [brandRows, totalItems, products] = await Promise.all([
+      this.prisma.product.findMany({
+        where: baseWhere,
+        select: { brand: { select: { id: true, name: true } } },
+      }),
+      this.prisma.product.count({ where: { ...baseWhere, brandId: query.brandId } }),
+      this.prisma.product.findMany({
+        where: { ...baseWhere, brandId: query.brandId },
+        include: { brand: true, images: { orderBy: { position: 'asc' }, take: 1 } },
+        orderBy: { name: 'asc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    const brandById = new Map<string, { id: string; name: string }>();
+    for (const row of brandRows) {
+      brandById.set(row.brand.id, row.brand);
+    }
+    const brands = Array.from(brandById.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+    return {
+      items: products.map((product) => ({
+        id: product.id,
+        name: product.name,
+        brand: product.brand.name,
+        // Pas de champ prix dans le schéma actuel — le kiosque affiche un
+        // libellé de repli ("Prix en magasin"), voir tv-client.ts.
+        imageUrl: product.images[0] ? product.images[0].url : null,
+      })),
+      page,
+      pageSize,
+      totalItems,
+      totalPages: Math.max(1, Math.ceil(totalItems / pageSize)),
+      brands,
+    };
+  }
+
+  /** Fiche produit détaillée pour le kiosque TV. */
+  async getCatalogProduct(id: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id, isActive: true },
+      include: {
+        brand: true,
+        category: true,
+        images: { orderBy: { position: 'asc' } },
+      },
+    });
+    if (!product) {
+      throw new NotFoundException(`Produit ${id} introuvable`);
+    }
+    return {
+      id: product.id,
+      name: product.name,
+      reference: product.reference,
+      description: product.description,
+      brand: {
+        id: product.brand.id,
+        name: product.brand.name,
+        logoUrl: product.brand.logoUrl,
+      },
+      category: { id: product.category.id, name: product.category.name },
+      images: product.images.map((image) => image.url),
     };
   }
 }
