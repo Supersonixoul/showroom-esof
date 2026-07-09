@@ -21,7 +21,7 @@ class DatabaseService {
     final path = join(dbPath, 'showroom_mobile.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE IF NOT EXISTS brands (
@@ -64,8 +64,38 @@ class DatabaseService {
             position INTEGER NOT NULL
           )
         ''');
+        await _createSyncMetaTable(db);
+        await _createPendingQuotesTable(db);
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await _createSyncMetaTable(db);
+          await _createPendingQuotesTable(db);
+        }
       },
     );
+  }
+
+  Future<void> _createSyncMetaTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sync_meta (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    ''');
+  }
+
+  /// File d'attente hors-ligne des devis (spec §6.3, Sprint 10) : un devis
+  /// créé sans réseau est conservé ici jusqu'à son envoi réussi.
+  Future<void> _createPendingQuotesTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS pending_quotes (
+        id TEXT PRIMARY KEY,
+        clientId TEXT NOT NULL,
+        itemsJson TEXT NOT NULL,
+        createdAt TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<void> replaceCatalog(CatalogSnapshot snapshot) async {
@@ -92,6 +122,79 @@ class DatabaseService {
         }
       }
     });
+  }
+
+  /// Fusionne un lot différentiel (`/catalog/sync`) dans le cache local : les
+  /// marques/catégories/produits touchés sont mis à jour en place (upsert),
+  /// et pour chaque produit modifié, ses spécifications/images sont
+  /// entièrement remplacées (l'API renvoie leur état complet, pas leur diff).
+  Future<void> mergeCatalog(CatalogSnapshot diff) async {
+    final db = await _database;
+    await db.transaction((txn) async {
+      for (final brand in diff.brands) {
+        await txn.insert('brands', brand.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      for (final category in diff.categories) {
+        await txn.insert('categories', category.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      for (final product in diff.products) {
+        await txn.insert('products', product.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.delete('product_specs',
+            where: 'productId = ?', whereArgs: [product.id]);
+        await txn.delete('product_images',
+            where: 'productId = ?', whereArgs: [product.id]);
+        for (final spec in product.specs) {
+          await txn.insert('product_specs', spec.toMap());
+        }
+        for (final image in product.images) {
+          await txn.insert('product_images', image.toMap());
+        }
+      }
+    });
+  }
+
+  Future<String?> getLastSyncedAt() async {
+    final db = await _database;
+    final rows =
+        await db.query('sync_meta', where: 'key = ?', whereArgs: ['catalogSyncedAt']);
+    if (rows.isEmpty) return null;
+    return rows.first['value'] as String;
+  }
+
+  Future<void> setLastSyncedAt(String value) async {
+    final db = await _database;
+    await db.insert(
+      'sync_meta',
+      {'key': 'catalogSyncedAt', 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> enqueuePendingQuote({
+    required String id,
+    required String clientId,
+    required String itemsJson,
+  }) async {
+    final db = await _database;
+    await db.insert('pending_quotes', {
+      'id': id,
+      'clientId': clientId,
+      'itemsJson': itemsJson,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingQuotes() async {
+    final db = await _database;
+    return db.query('pending_quotes', orderBy: 'createdAt ASC');
+  }
+
+  Future<void> removePendingQuote(String id) async {
+    final db = await _database;
+    await db.delete('pending_quotes', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<CatalogSnapshot> getCatalog() async {

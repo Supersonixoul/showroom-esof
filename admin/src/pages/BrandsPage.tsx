@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { brandsApi } from '../api/client';
+import { brandsApi, mediaUrl, uploadMedia } from '../api/client';
 import type { Brand } from '../api/types';
 
 export function BrandsPage() {
@@ -13,6 +13,8 @@ export function BrandsPage() {
   const [name, setName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['brands'] });
@@ -43,6 +45,22 @@ export function BrandsPage() {
     setName('');
     setLogoUrl('');
     setEditingId(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const result = await uploadMedia(file, 'brands');
+      setLogoUrl(result.url);
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   }
 
   function startEdit(brand: Brand) {
@@ -88,7 +106,19 @@ export function BrandsPage() {
             />
           </label>
           <label>
-            Logo (URL)
+            Logo
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              disabled={uploading}
+            />
+          </label>
+        </div>
+        <div className="form-row">
+          <label>
+            Logo (URL manuelle, optionnel)
             <input
               value={logoUrl}
               onChange={(e) => setLogoUrl(e.target.value)}
@@ -96,8 +126,14 @@ export function BrandsPage() {
             />
           </label>
         </div>
+        {logoUrl && (
+          <div className="form-row">
+            <img className="thumb" src={mediaUrl(logoUrl)} alt="Aperçu logo" />
+          </div>
+        )}
         <div className="actions">
-          <button type="submit" className="primary" disabled={saving}>
+          {uploading && <span className="muted">Envoi…</span>}
+          <button type="submit" className="primary" disabled={saving || uploading}>
             {editingId ? 'Enregistrer' : 'Ajouter'}
           </button>
           {editingId && (
@@ -124,7 +160,7 @@ export function BrandsPage() {
               <tr key={brand.id}>
                 <td>
                   {brand.logoUrl ? (
-                    <img className="thumb" src={brand.logoUrl} alt="" />
+                    <img className="thumb" src={mediaUrl(brand.logoUrl)} alt="" />
                   ) : (
                     <span className="muted">—</span>
                   )}

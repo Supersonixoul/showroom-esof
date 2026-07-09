@@ -1,23 +1,43 @@
 import type {
+  AuthUser,
   Brand,
   Category,
+  LoginResult,
   Product,
   ProductImage,
   ProductSpec,
   PromoVideo,
+  Subcategory,
   UploadResult,
 } from './types';
+import { readStoredAuth } from '../auth/storage';
 
 export const API_URL = 'http://localhost:3000';
+
+/// Appelé en cas de 401 (token absent/expiré/invalide) pour forcer la
+/// déconnexion — branché par `AuthProvider` (spec Sprint 11, login admin).
+let unauthorizedHandler: (() => void) | null = null;
+export function setUnauthorizedHandler(handler: () => void) {
+  unauthorizedHandler = handler;
+}
+
+function authHeader(): Record<string, string> {
+  const token = readStoredAuth()?.token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
       ...(options?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...authHeader(),
       ...options?.headers,
     },
   });
+  if (res.status === 401) {
+    unauthorizedHandler?.();
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`${res.status} ${res.statusText}: ${text}`);
@@ -25,6 +45,18 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
+
+// ---- Auth -----------------------------------------------------------
+
+export const authApi = {
+  login: (email: string, password: string) =>
+    request<LoginResult>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+};
+
+export type { AuthUser };
 
 // ---- Brands -----------------------------------------------------------
 
@@ -56,6 +88,32 @@ export const categoriesApi = {
     }),
   remove: (id: string) =>
     request<void>(`/categories/${id}`, { method: 'DELETE' }),
+};
+
+// ---- Subcategories --------------------------------------------------------
+
+export const subcategoriesApi = {
+  list: (categoryId?: string) =>
+    request<Subcategory[]>(
+      categoryId ? `/subcategories?categoryId=${categoryId}` : '/subcategories',
+    ),
+  create: (data: Partial<Subcategory>) =>
+    request<Subcategory>('/subcategories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<Subcategory>) =>
+    request<Subcategory>(`/subcategories/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  remove: (id: string) =>
+    request<void>(`/subcategories/${id}`, { method: 'DELETE' }),
+  move: (id: string, direction: 'up' | 'down') =>
+    request<Subcategory>(`/subcategories/${id}/move`, {
+      method: 'PATCH',
+      body: JSON.stringify({ direction }),
+    }),
 };
 
 // ---- Products -----------------------------------------------------------
@@ -114,13 +172,26 @@ export const videosApi = {
 
 // ---- Media (upload) -----------------------------------------------------
 
-export async function uploadMedia(file: File): Promise<UploadResult> {
+export type UploadResource =
+  | 'products'
+  | 'promo-videos'
+  | 'brands'
+  | 'subcategories';
+
+export async function uploadMedia(
+  file: File,
+  resource: UploadResource,
+): Promise<UploadResult> {
   const form = new FormData();
   form.append('file', file);
-  const res = await fetch(`${API_URL}/media/upload`, {
+  const res = await fetch(`${API_URL}/media/upload/${resource}`, {
     method: 'POST',
+    headers: authHeader(),
     body: form,
   });
+  if (res.status === 401) {
+    unauthorizedHandler?.();
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`${res.status} ${res.statusText}: ${text}`);

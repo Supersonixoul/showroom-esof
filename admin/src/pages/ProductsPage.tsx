@@ -1,6 +1,13 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { brandsApi, categoriesApi, mediaUrl, productsApi, uploadMedia } from '../api/client';
+import {
+  brandsApi,
+  categoriesApi,
+  mediaUrl,
+  productsApi,
+  subcategoriesApi,
+  uploadMedia,
+} from '../api/client';
 import type { Product } from '../api/types';
 
 export function ProductsPage() {
@@ -20,7 +27,14 @@ export function ProductsPage() {
   const [description, setDescription] = useState('');
   const [brandId, setBrandId] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [subcategoryId, setSubcategoryId] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const { data: subcategories } = useQuery({
+    queryKey: ['subcategories', categoryId],
+    queryFn: () => subcategoriesApi.list(categoryId),
+    enabled: !!categoryId,
+  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const invalidate = () =>
@@ -57,6 +71,7 @@ export function ProductsPage() {
     setDescription('');
     setBrandId('');
     setCategoryId('');
+    setSubcategoryId('');
     setEditingId(null);
   }
 
@@ -67,6 +82,7 @@ export function ProductsPage() {
     setDescription(product.description ?? '');
     setBrandId(product.brandId);
     setCategoryId(product.categoryId);
+    setSubcategoryId(product.subcategoryId ?? '');
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -77,6 +93,7 @@ export function ProductsPage() {
       description: description || undefined,
       brandId,
       categoryId,
+      subcategoryId: subcategoryId || null,
     };
     if (editingId) {
       updateMutation.mutate({ id: editingId, data });
@@ -148,7 +165,10 @@ export function ProductsPage() {
             Catégorie
             <select
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
+              onChange={(e) => {
+                setCategoryId(e.target.value);
+                setSubcategoryId('');
+              }}
               required
             >
               <option value="" disabled>
@@ -157,6 +177,21 @@ export function ProductsPage() {
               {categories?.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Sous-catégorie (optionnel)
+            <select
+              value={subcategoryId}
+              onChange={(e) => setSubcategoryId(e.target.value)}
+              disabled={!categoryId}
+            >
+              <option value="">Aucune</option>
+              {subcategories?.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
                 </option>
               ))}
             </select>
@@ -294,7 +329,7 @@ function ProductDetail({ productId }: { productId: string }) {
     if (!file) return;
     setUploading(true);
     try {
-      const result = await uploadMedia(file);
+      const result = await uploadMedia(file, 'products');
       const position = product?.images?.length ?? 0;
       await addImageMutation.mutateAsync({ url: result.url, position });
     } catch (err) {

@@ -96,6 +96,7 @@ class _VideoCarouselScreenState extends State<VideoCarouselScreen> {
   @override
   void dispose() {
     _repository.videos.removeListener(_onVideosChanged);
+    _repository.dispose();
     catalogRouteObserver.inCatalogMode.removeListener(_onCatalogModeChanged);
     _controller?.removeListener(_onControllerUpdate);
     _controller?.dispose();

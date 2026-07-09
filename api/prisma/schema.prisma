@@ -38,8 +38,31 @@ model Category {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   products  Product[]
+  subcategories Subcategory[]
 
   @@map("categories")
+}
+
+/// Affine la classification d'un produit au sein d'une catégorie
+/// (ex. catégorie "Interrupteurs" -> sous-catégories "Simple", "Double"...).
+/// Toujours facultative côté Product — voir Product.subcategoryId.
+model Subcategory {
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  imageUrl    String? @map("image_url")
+  displayOrder Int    @default(0) @map("display_order")
+
+  categoryId String   @map("category_id") @db.Uuid
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@unique([categoryId, name])
+  @@map("subcategories")
 }
 
 model Product {
@@ -53,6 +76,9 @@ model Product {
   brand      Brand    @relation(fields: [brandId], references: [id])
   categoryId String   @map("category_id") @db.Uuid
   category   Category @relation(fields: [categoryId], references: [id])
+
+  subcategoryId String?      @map("subcategory_id") @db.Uuid
+  subcategory   Subcategory? @relation(fields: [subcategoryId], references: [id])
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

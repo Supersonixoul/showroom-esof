@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Controller,
+  Param,
   Post,
   UploadedFile,
   UseGuards,
@@ -18,14 +19,17 @@ import { Role } from '../../generated/prisma/client';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class MediaController {
-  @Post('upload')
+  @Post('upload/:resource')
   @UseInterceptors(FileInterceptor('file', multerConfig))
-  upload(@UploadedFile() file: Express.Multer.File) {
+  upload(
+    @Param('resource') resource: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     if (!file) {
       throw new BadRequestException('Aucun fichier reçu');
     }
     return {
-      url: `/uploads/${file.filename}`,
+      url: `/uploads/${resource}/${file.filename}`,
       filename: file.filename,
       mimetype: file.mimetype,
       size: file.size,

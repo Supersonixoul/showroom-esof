@@ -59,6 +59,15 @@ export class CategoriesService {
       );
     }
 
+    const subcategoryCount = await this.prisma.subcategory.count({
+      where: { categoryId: id },
+    });
+    if (subcategoryCount > 0) {
+      throw new ConflictException(
+        'Impossible de supprimer une catégorie qui a des sous-catégories',
+      );
+    }
+
     const productCount = await this.prisma.product.count({
       where: { categoryId: id },
     });

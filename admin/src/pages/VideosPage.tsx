@@ -65,7 +65,7 @@ export function VideosPage() {
     if (!file) return;
     setUploading(true);
     try {
-      const result = await uploadMedia(file);
+      const result = await uploadMedia(file, 'promo-videos');
       setUrl(result.url);
     } catch (err) {
       alert((err as Error).message);

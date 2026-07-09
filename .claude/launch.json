@@ -7,6 +7,13 @@
       "runtimeArgs": ["node_modules/vite/bin/vite.js"],
       "cwd": "admin",
       "port": 5173
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["node_modules/@nestjs/cli/bin/nest.js", "start", "--watch"],
+      "cwd": "api",
+      "port": 3000
     }
   ]
 }

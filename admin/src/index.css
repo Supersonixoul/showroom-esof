@@ -9,7 +9,7 @@
   --danger: #d1453b;
   --ok: #2a9d6f;
 
-  font: 15px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  font: 16px/1.6 'Inter', 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
   color: var(--text);
   background: var(--bg);
 }
@@ -20,10 +20,26 @@
 
 body {
   margin: 0;
+  font-size: 16px;
 }
 
 h1, h2, h3 {
   margin: 0 0 12px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: 28px;
+}
+
+h2 {
+  font-size: 24px;
+}
+
+h3 {
+  font-size: 19px;
 }
 
 button {
@@ -83,7 +99,7 @@ th, td {
 th {
   background: #fafafa;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -109,7 +125,7 @@ tr:last-child td {
 }
 
 .logo {
-  font-size: 18px;
+  font-size: 20px;
   margin-bottom: 24px;
 }
 
@@ -145,7 +161,7 @@ tr:last-child td {
 }
 
 .sync {
-  font-size: 12px;
+  font-size: 13px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -195,7 +211,7 @@ tr:last-child td {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-muted);
   flex: 1;
   min-width: 180px;
@@ -204,6 +220,17 @@ tr:last-child td {
 .actions {
   display: flex;
   gap: 8px;
+}
+
+.reorder-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+button.icon-btn {
+  padding: 4px 8px;
+  line-height: 1;
+  font-weight: 600;
 }
 
 .muted {
@@ -219,6 +246,15 @@ tr:last-child td {
   margin-bottom: 16px;
 }
 
+.success-banner {
+  background: #e9f7ef;
+  color: #1e7e34;
+  border: 1px solid #b7e4c7;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
 .thumb {
   width: 48px;
   height: 48px;
@@ -227,9 +263,18 @@ tr:last-child td {
   border: 1px solid var(--border);
 }
 
+.video-thumb {
+  width: 160px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: #000;
+}
+
 .tag {
   display: inline-block;
-  font-size: 12px;
+  font-size: 13px;
   padding: 2px 8px;
   border-radius: 10px;
   background: var(--accent-bg);
