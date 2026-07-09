@@ -8,4 +8,8 @@ export class FindProductsQueryDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  subcategoryId?: string;
 }

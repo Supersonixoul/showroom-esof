@@ -67,18 +67,33 @@ export class CatalogService {
   // Endpoints publics dédiés (pas de session) : réponses allégées, uniquement
   // les champs utiles à l'affichage TV.
 
-  /** Catégories avec le nombre de produits actifs qu'elles contiennent (pour un état vide propre côté TV). */
+  /**
+   * Catégories avec le nombre de produits actifs qu'elles contiennent (pour un
+   * état vide propre côté TV), et leurs sous-catégories (le cas échéant) pour
+   * peupler la ligne de puces "Sous-catégorie" sans appel réseau supplémentaire.
+   */
   async getCatalogCategories() {
     const categories = await this.prisma.category.findMany({
       orderBy: { name: 'asc' },
       include: {
         _count: { select: { products: { where: { isActive: true } } } },
+        subcategories: {
+          orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+          include: {
+            _count: { select: { products: { where: { isActive: true } } } },
+          },
+        },
       },
     });
     return categories.map((category) => ({
       id: category.id,
       name: category.name,
       productCount: category._count.products,
+      subcategories: category.subcategories.map((subcategory) => ({
+        id: subcategory.id,
+        name: subcategory.name,
+        productCount: subcategory._count.products,
+      })),
     }));
   }
 
@@ -91,15 +106,22 @@ export class CatalogService {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 8;
     const baseWhere = { categoryId: query.categoryId, isActive: true };
+    // subcategoryId absent (puce "Toutes") -> pas de filtre, inclut aussi les
+    // produits sans sous-catégorie.
+    const filterWhere = {
+      ...baseWhere,
+      brandId: query.brandId,
+      subcategoryId: query.subcategoryId,
+    };
 
     const [brandRows, totalItems, products] = await Promise.all([
       this.prisma.product.findMany({
         where: baseWhere,
         select: { brand: { select: { id: true, name: true } } },
       }),
-      this.prisma.product.count({ where: { ...baseWhere, brandId: query.brandId } }),
+      this.prisma.product.count({ where: filterWhere }),
       this.prisma.product.findMany({
-        where: { ...baseWhere, brandId: query.brandId },
+        where: filterWhere,
         include: { brand: true, images: { orderBy: { position: 'asc' }, take: 1 } },
         orderBy: { name: 'asc' },
         skip: (page - 1) * pageSize,

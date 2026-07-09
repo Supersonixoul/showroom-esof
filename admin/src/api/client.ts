@@ -7,6 +7,7 @@ import type {
   ProductImage,
   ProductSpec,
   PromoVideo,
+  Subcategory,
   UploadResult,
 } from './types';
 import { readStoredAuth } from '../auth/storage';
@@ -89,6 +90,32 @@ export const categoriesApi = {
     request<void>(`/categories/${id}`, { method: 'DELETE' }),
 };
 
+// ---- Subcategories --------------------------------------------------------
+
+export const subcategoriesApi = {
+  list: (categoryId?: string) =>
+    request<Subcategory[]>(
+      categoryId ? `/subcategories?categoryId=${categoryId}` : '/subcategories',
+    ),
+  create: (data: Partial<Subcategory>) =>
+    request<Subcategory>('/subcategories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<Subcategory>) =>
+    request<Subcategory>(`/subcategories/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  remove: (id: string) =>
+    request<void>(`/subcategories/${id}`, { method: 'DELETE' }),
+  move: (id: string, direction: 'up' | 'down') =>
+    request<Subcategory>(`/subcategories/${id}/move`, {
+      method: 'PATCH',
+      body: JSON.stringify({ direction }),
+    }),
+};
+
 // ---- Products -----------------------------------------------------------
 
 export const productsApi = {
@@ -145,7 +172,11 @@ export const videosApi = {
 
 // ---- Media (upload) -----------------------------------------------------
 
-export type UploadResource = 'products' | 'promo-videos' | 'brands';
+export type UploadResource =
+  | 'products'
+  | 'promo-videos'
+  | 'brands'
+  | 'subcategories';
 
 export async function uploadMedia(
   file: File,

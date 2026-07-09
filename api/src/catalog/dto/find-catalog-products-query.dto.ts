@@ -11,6 +11,10 @@ export class FindCatalogProductsQueryDto {
   brandId?: string;
 
   @IsOptional()
+  @IsUUID()
+  subcategoryId?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)

@@ -16,6 +16,18 @@ export interface Category {
   updatedAt: string;
 }
 
+export interface Subcategory {
+  id: string;
+  name: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  displayOrder: number;
+  categoryId: string;
+  category?: Category;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProductSpec {
   id: string;
   label: string;
@@ -38,8 +50,10 @@ export interface Product {
   isActive: boolean;
   brandId: string;
   categoryId: string;
+  subcategoryId?: string | null;
   brand?: Brand;
   category?: Category;
+  subcategory?: Subcategory | null;
   specs?: ProductSpec[];
   images?: ProductImage[];
   createdAt: string;

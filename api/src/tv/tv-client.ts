@@ -46,6 +46,7 @@ export const TV_CLIENT_JS = `(function () {
   var catCategoriesScreen = document.getElementById('cat-categories-screen');
   var catCategoriesGrid = document.getElementById('cat-categories-grid');
   var catProductsScreen = document.getElementById('cat-products-screen');
+  var catSubChips = document.getElementById('cat-sub-chips');
   var catBrandChips = document.getElementById('cat-brand-chips');
   var catProductsGrid = document.getElementById('cat-products-grid');
   var catEmpty = document.getElementById('cat-empty');
@@ -595,12 +596,15 @@ export const TV_CLIENT_JS = `(function () {
       categoryName: cat.name,
       brandId: null,
       brands: [],
+      subcategories: cat.subcategories || [],
+      subcategoryId: null,
       items: [],
       page: 1,
       pageSize: 8,
       totalPages: 1,
       focusIndex: 0,
       chipsFocusIndex: 0,
+      subChipsFocusIndex: 0,
       zone: 'grid',
       pendingFocus: null,
     };
@@ -616,6 +620,9 @@ export const TV_CLIENT_JS = `(function () {
       '&page=' + productsState.page + '&pageSize=' + productsState.pageSize;
     if (productsState.brandId) {
       url += '&brandId=' + encodeURIComponent(productsState.brandId);
+    }
+    if (productsState.subcategoryId) {
+      url += '&subcategoryId=' + encodeURIComponent(productsState.subcategoryId);
     }
     fetch(url)
       .then(function (res) {
@@ -634,6 +641,7 @@ export const TV_CLIENT_JS = `(function () {
           productsState.focusIndex = 0;
         }
         productsState.pendingFocus = null;
+        renderSubChips();
         renderBrandChips();
         renderProducts();
         renderPagination();
@@ -672,6 +680,50 @@ export const TV_CLIENT_JS = `(function () {
 
   function selectBrandChip(brandId) {
     productsState.brandId = brandId;
+    productsState.page = 1;
+    productsState.focusIndex = 0;
+    fetchProducts();
+  }
+
+  // Ligne de puces "Sous-catégorie" — n'existe que si la catégorie ouverte en
+  // possède (récupérées avec la liste des catégories, pas d'appel réseau
+  // supplémentaire). "Toutes" (index 0, subcategoryId=null) inclut aussi les
+  // produits sans sous-catégorie, puisque le filtre est alors simplement omis
+  // côté API (voir catalog.service.ts getCatalogProducts).
+  function makeSubChip(label, subcategoryId, index) {
+    var chip = document.createElement('div');
+    var classes = 'chip';
+    if (productsState.subcategoryId === subcategoryId) {
+      classes += ' active';
+    }
+    if (productsState.zone === 'subChips' && index === productsState.subChipsFocusIndex) {
+      classes += ' focused';
+    }
+    chip.className = classes;
+    chip.textContent = label;
+    chip.addEventListener('click', function () {
+      productsState.subChipsFocusIndex = index;
+      selectSubChip(subcategoryId);
+    });
+    return chip;
+  }
+
+  function renderSubChips() {
+    catSubChips.innerHTML = '';
+    if (!productsState.subcategories || productsState.subcategories.length === 0) {
+      catSubChips.className = 'empty';
+      return;
+    }
+    catSubChips.className = '';
+    catSubChips.appendChild(makeSubChip('Toutes', null, 0));
+    for (var i = 0; i < productsState.subcategories.length; i++) {
+      var s = productsState.subcategories[i];
+      catSubChips.appendChild(makeSubChip(s.name, s.id, i + 1));
+    }
+  }
+
+  function selectSubChip(subcategoryId) {
+    productsState.subcategoryId = subcategoryId;
     productsState.page = 1;
     productsState.focusIndex = 0;
     fetchProducts();
@@ -750,6 +802,12 @@ export const TV_CLIENT_JS = `(function () {
         productsState.chipsFocusIndex++;
         renderBrandChips();
       }
+    } else if (action === 'up') {
+      if (productsState.subcategories && productsState.subcategories.length > 0) {
+        productsState.zone = 'subChips';
+        renderSubChips();
+        renderBrandChips();
+      }
     } else if (action === 'down') {
       productsState.zone = 'grid';
       renderBrandChips();
@@ -763,12 +821,43 @@ export const TV_CLIENT_JS = `(function () {
     }
   }
 
+  function handleSubChipsKey(action) {
+    var total = productsState.subcategories.length + 1;
+    if (action === 'left') {
+      if (productsState.subChipsFocusIndex > 0) {
+        productsState.subChipsFocusIndex--;
+        renderSubChips();
+      }
+    } else if (action === 'right') {
+      if (productsState.subChipsFocusIndex < total - 1) {
+        productsState.subChipsFocusIndex++;
+        renderSubChips();
+      }
+    } else if (action === 'down') {
+      productsState.zone = productsState.brands.length > 0 ? 'chips' : 'grid';
+      renderSubChips();
+      renderBrandChips();
+      renderProducts();
+    } else if (action === 'enter') {
+      var subcategoryId =
+        productsState.subChipsFocusIndex === 0
+          ? null
+          : productsState.subcategories[productsState.subChipsFocusIndex - 1].id;
+      selectSubChip(subcategoryId);
+    }
+  }
+
   function handleProductsGridKey(action) {
     var items = productsState.items;
     if (items.length === 0) {
-      if (action === 'up' && productsState.brands.length > 0) {
-        productsState.zone = 'chips';
-        renderBrandChips();
+      if (action === 'up') {
+        if (productsState.brands.length > 0) {
+          productsState.zone = 'chips';
+          renderBrandChips();
+        } else if (productsState.subcategories && productsState.subcategories.length > 0) {
+          productsState.zone = 'subChips';
+          renderSubChips();
+        }
       }
       return;
     }
@@ -780,6 +869,10 @@ export const TV_CLIENT_JS = `(function () {
       if (productsState.brands.length > 0) {
         productsState.zone = 'chips';
         renderBrandChips();
+        renderProducts();
+      } else if (productsState.subcategories && productsState.subcategories.length > 0) {
+        productsState.zone = 'subChips';
+        renderSubChips();
         renderProducts();
       }
       return;
@@ -810,6 +903,8 @@ export const TV_CLIENT_JS = `(function () {
     }
     if (productsState.zone === 'chips') {
       handleChipsKey(action);
+    } else if (productsState.zone === 'subChips') {
+      handleSubChipsKey(action);
     } else {
       handleProductsGridKey(action);
     }

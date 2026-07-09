@@ -325,12 +325,17 @@ export const TV_PAGE_HTML = `<!doctype html>
     font-weight: bold;
   }
 
+  #cat-sub-chips,
   #cat-brand-chips {
     display: flex;
     gap: 14px;
     margin-bottom: 24px;
     flex-wrap: wrap;
     flex: 0 0 auto;
+  }
+  #cat-sub-chips.empty {
+    display: none;
+    margin-bottom: 0;
   }
   .chip {
     background: rgba(255, 255, 255, 0.1);
@@ -474,6 +479,7 @@ export const TV_PAGE_HTML = `<!doctype html>
     </div>
 
     <div id="cat-products-screen" class="cat-screen">
+      <div id="cat-sub-chips" class="empty"></div>
       <div id="cat-brand-chips"></div>
       <div id="cat-products-grid" class="cat-grid"></div>
       <div id="cat-empty" class="cat-empty">Aucun produit dans cette catégorie</div>
