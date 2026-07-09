@@ -86,7 +86,7 @@ export const TV_CLIENT_JS = `(function () {
       'lastKeyCode: ' + debugLastKeyCode,
       'errors (' + debugErrorCount + '): ' + debugLastError,
     ];
-    debugPanel.textContent = lines.join('\n');
+    debugPanel.textContent = lines.join('\\n');
   }
 
   function debugReportError(message) {
