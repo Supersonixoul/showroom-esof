@@ -60,6 +60,56 @@ export const TV_CLIENT_JS = `(function () {
   var catDetailRef = document.getElementById('cat-detail-ref');
   var catDetailPrice = document.getElementById('cat-detail-price');
   var catDetailDesc = document.getElementById('cat-detail-desc');
+  var debugPanel = document.getElementById('debug-panel');
+
+  // ------ Panneau de debug (activé via /tv?debug=1) ------
+  // Placé tout en haut de l'IIFE pour capturer via window.onerror la moindre
+  // exception JS qui surviendrait plus loin dans ce fichier (utile car la TV
+  // n'a pas de console accessible). N'a aucun effet sans le paramètre
+  // d'URL : le panneau reste display:none (voir CSS de tv-page.ts) et aucune
+  // des fonctions ci-dessous n'écrit dedans.
+  var DEBUG = /[?&]debug=1(&|$)/.test(window.location.search);
+  var debugLastKeyCode = null;
+  var debugErrorCount = 0;
+  var debugLastError = '';
+
+  function renderDebugPanel() {
+    if (!DEBUG || !debugPanel) {
+      return;
+    }
+    var lines = [
+      'mode: ' + mode,
+      'catalogScreen: ' + catalogScreen,
+      'playlistOpen: ' + playlistOpen,
+      'controlsVisible: ' + controlsVisible,
+      'currentIndex: ' + currentIndex + ' / ' + playlist.length,
+      'lastKeyCode: ' + debugLastKeyCode,
+      'errors (' + debugErrorCount + '): ' + debugLastError,
+    ];
+    debugPanel.textContent = lines.join('\n');
+  }
+
+  function debugReportError(message) {
+    if (!DEBUG) {
+      return;
+    }
+    debugErrorCount++;
+    debugLastError = String(message);
+    renderDebugPanel();
+  }
+
+  if (DEBUG) {
+    debugPanel.className = 'visible';
+    window.onerror = function (message, source, lineno, colno) {
+      debugReportError(message + ' @' + source + ':' + lineno + ':' + colno);
+      return false;
+    };
+    window.addEventListener('unhandledrejection', function (ev) {
+      var reason = ev && ev.reason ? (ev.reason.message || ev.reason) : 'inconnue';
+      debugReportError('promesse rejetée : ' + reason);
+    });
+    renderDebugPanel();
+  }
 
   var buttons = [btnPrev, btnPlayPause, btnNext, btnPlaylist, btnCatalog];
 
@@ -195,8 +245,9 @@ export const TV_CLIENT_JS = `(function () {
   }
 
   function fetchPlaylist() {
-    fetch('/catalog/promo-videos')
-      .then(function (res) {
+    try {
+      fetch('/catalog/promo-videos')
+        .then(function (res) {
         if (!res.ok) {
           throw new Error('HTTP ' + res.status);
         }
@@ -242,6 +293,14 @@ export const TV_CLIENT_JS = `(function () {
         showWaiting();
         scheduleNext(RETRY_MS);
       });
+    } catch (err) {
+      // Erreur synchrone (ex. fetch() indisponible sur ce moteur) : la
+      // lecture vidéo ne doit jamais rester bloquée pour autant.
+      console.error('fetchPlaylist a échoué de façon synchrone :', err);
+      debugReportError('fetchPlaylist: ' + err);
+      showWaiting();
+      scheduleNext(RETRY_MS);
+    }
   }
 
   soundBtn.addEventListener('click', function () {
@@ -521,21 +580,29 @@ export const TV_CLIENT_JS = `(function () {
   // ---- Écran catégories ----
 
   function fetchCategories() {
-    fetch('/catalog/categories')
-      .then(function (res) {
-        if (!res.ok) {
-          throw new Error('HTTP ' + res.status);
-        }
-        return res.json();
-      })
-      .then(function (data) {
-        categories = data;
-        categoryFocusIndex = 0;
-        renderCategories();
-      })
-      .catch(function (err) {
-        console.error('Impossible de charger les catégories :', err);
-      });
+    try {
+      fetch('/catalog/categories')
+        .then(function (res) {
+          if (!res.ok) {
+            throw new Error('HTTP ' + res.status);
+          }
+          return res.json();
+        })
+        .then(function (data) {
+          categories = data;
+          categoryFocusIndex = 0;
+          renderCategories();
+        })
+        .catch(function (err) {
+          console.error('Impossible de charger les catégories :', err);
+          debugReportError('fetchCategories: ' + err);
+        });
+    } catch (err) {
+      // Un échec du catalogue ne doit jamais empêcher le retour au mode
+      // vidéo (Back reste actif) ni casser les contrôles vidéo.
+      console.error('fetchCategories a échoué de façon synchrone :', err);
+      debugReportError('fetchCategories: ' + err);
+    }
   }
 
   function renderCategories() {
@@ -624,31 +691,37 @@ export const TV_CLIENT_JS = `(function () {
     if (productsState.subcategoryId) {
       url += '&subcategoryId=' + encodeURIComponent(productsState.subcategoryId);
     }
-    fetch(url)
-      .then(function (res) {
-        if (!res.ok) {
-          throw new Error('HTTP ' + res.status);
-        }
-        return res.json();
-      })
-      .then(function (data) {
-        productsState.items = data.items;
-        productsState.totalPages = data.totalPages;
-        productsState.brands = data.brands;
-        if (productsState.pendingFocus === 'last') {
-          productsState.focusIndex = Math.max(0, productsState.items.length - 1);
-        } else if (productsState.pendingFocus === 'first') {
-          productsState.focusIndex = 0;
-        }
-        productsState.pendingFocus = null;
-        renderSubChips();
-        renderBrandChips();
-        renderProducts();
-        renderPagination();
-      })
-      .catch(function (err) {
-        console.error('Impossible de charger les produits :', err);
-      });
+    try {
+      fetch(url)
+        .then(function (res) {
+          if (!res.ok) {
+            throw new Error('HTTP ' + res.status);
+          }
+          return res.json();
+        })
+        .then(function (data) {
+          productsState.items = data.items;
+          productsState.totalPages = data.totalPages;
+          productsState.brands = data.brands;
+          if (productsState.pendingFocus === 'last') {
+            productsState.focusIndex = Math.max(0, productsState.items.length - 1);
+          } else if (productsState.pendingFocus === 'first') {
+            productsState.focusIndex = 0;
+          }
+          productsState.pendingFocus = null;
+          renderSubChips();
+          renderBrandChips();
+          renderProducts();
+          renderPagination();
+        })
+        .catch(function (err) {
+          console.error('Impossible de charger les produits :', err);
+          debugReportError('fetchProducts: ' + err);
+        });
+    } catch (err) {
+      console.error('fetchProducts a échoué de façon synchrone :', err);
+      debugReportError('fetchProducts: ' + err);
+    }
   }
 
   function makeChip(label, brandId, index) {
@@ -918,21 +991,27 @@ export const TV_CLIENT_JS = `(function () {
       return;
     }
     productsState.focusIndex = index;
-    fetch('/catalog/products/' + p.id)
-      .then(function (res) {
-        if (!res.ok) {
-          throw new Error('HTTP ' + res.status);
-        }
-        return res.json();
-      })
-      .then(function (data) {
-        detailState = { product: data, imageIndex: 0, imageCount: 0 };
-        renderDetail();
-        showCatalogScreen('detail');
-      })
-      .catch(function (err) {
-        console.error('Impossible de charger le produit :', err);
-      });
+    try {
+      fetch('/catalog/products/' + p.id)
+        .then(function (res) {
+          if (!res.ok) {
+            throw new Error('HTTP ' + res.status);
+          }
+          return res.json();
+        })
+        .then(function (data) {
+          detailState = { product: data, imageIndex: 0, imageCount: 0 };
+          renderDetail();
+          showCatalogScreen('detail');
+        })
+        .catch(function (err) {
+          console.error('Impossible de charger le produit :', err);
+          debugReportError('openProductDetail: ' + err);
+        });
+    } catch (err) {
+      console.error('openProductDetail a échoué de façon synchrone :', err);
+      debugReportError('openProductDetail: ' + err);
+    }
   }
 
   function renderDetail() {
@@ -1097,8 +1176,14 @@ export const TV_CLIENT_JS = `(function () {
   }
 
   document.addEventListener('keydown', function (e) {
+    if (DEBUG) {
+      debugLastKeyCode = e.keyCode || e.which || 0;
+    }
     // Laisse le bouton son gérer nativement sa propre touche Entrée.
     if (document.activeElement === soundBtn && (e.keyCode === KEY_ENTER || e.key === 'Enter')) {
+      if (DEBUG) {
+        renderDebugPanel();
+      }
       return;
     }
     var action = getKeyAction(e);
@@ -1107,6 +1192,9 @@ export const TV_CLIENT_JS = `(function () {
         e.preventDefault();
       }
       handleCatalogKey(action);
+      if (DEBUG) {
+        renderDebugPanel();
+      }
       return;
     }
     if (playlistOpen) {
@@ -1114,6 +1202,9 @@ export const TV_CLIENT_JS = `(function () {
         e.preventDefault();
       }
       handlePlaylistKey(action);
+      if (DEBUG) {
+        renderDebugPanel();
+      }
       return;
     }
     if (action) {
@@ -1122,6 +1213,9 @@ export const TV_CLIENT_JS = `(function () {
     showControls();
     if (action) {
       handleControlsKey(action);
+    }
+    if (DEBUG) {
+      renderDebugPanel();
     }
   });
 

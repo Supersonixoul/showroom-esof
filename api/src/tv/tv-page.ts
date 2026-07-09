@@ -85,6 +85,29 @@ export const TV_PAGE_HTML = `<!doctype html>
     opacity: 0;
   }
 
+  /* Panneau de debug, activé uniquement via /tv?debug=1 (voir tv-client.ts).
+     Reste display:none tant que le JS ne lui ajoute pas la classe "visible" :
+     page strictement inchangée sans le paramètre. */
+  #debug-panel {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    max-width: 46vw;
+    background: rgba(0, 0, 0, 0.8);
+    color: #0f0;
+    font-family: monospace;
+    font-size: 16px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    padding: 10px 14px;
+    z-index: 9999;
+    pointer-events: none;
+  }
+  #debug-panel.visible {
+    display: block;
+  }
+
   #controls {
     position: fixed;
     left: 0;
@@ -453,6 +476,7 @@ export const TV_PAGE_HTML = `<!doctype html>
   <video id="video" autoplay muted playsinline></video>
   <div id="waiting">ESOF</div>
   <div id="hint">&#9664; &#9654; Naviguer &nbsp;|&nbsp; &#9650; Playlist &nbsp;|&nbsp; &#9660; Catalogue &nbsp;|&nbsp; OK Valider</div>
+  <div id="debug-panel"></div>
   <button id="sound-btn" tabindex="0">🔊 Activer le son</button>
   <div id="controls">
     <span id="now-playing"></span>
