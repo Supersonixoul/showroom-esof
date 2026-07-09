@@ -5,6 +5,7 @@ import { SyncIndicator } from './SyncIndicator';
 const links = [
   { to: '/brands', label: 'Marques' },
   { to: '/categories', label: 'Catégories' },
+  { to: '/subcategories', label: 'Sous-Catégories' },
   { to: '/products', label: 'Produits' },
   { to: '/videos', label: 'Vidéos' },
 ];

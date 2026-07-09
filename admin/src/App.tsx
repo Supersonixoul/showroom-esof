@@ -5,6 +5,7 @@ import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
 import { BrandsPage } from './pages/BrandsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
+import { SubcategoriesPage } from './pages/SubcategoriesPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { VideosPage } from './pages/VideosPage';
 
@@ -31,6 +32,7 @@ function App() {
         <Route index element={<Navigate to="/brands" replace />} />
         <Route path="/brands" element={<BrandsPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
+        <Route path="/subcategories" element={<SubcategoriesPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/videos" element={<VideosPage />} />
       </Route>
