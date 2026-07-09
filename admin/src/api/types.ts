@@ -24,6 +24,7 @@ export interface Subcategory {
   displayOrder: number;
   categoryId: string;
   category?: Category;
+  _count?: { products: number };
   createdAt: string;
   updatedAt: string;
 }

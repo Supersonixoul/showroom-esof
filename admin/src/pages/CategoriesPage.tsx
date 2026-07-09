@@ -205,6 +205,11 @@ export function CategoriesPage() {
   );
 }
 
+function truncate(text: string | null | undefined, max: number) {
+  if (!text) return '—';
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
 function SubcategoriesPanel({ categoryId }: { categoryId: string }) {
   const queryClient = useQueryClient();
   const queryKey = ['subcategories', categoryId];
@@ -368,6 +373,8 @@ function SubcategoriesPanel({ categoryId }: { categoryId: string }) {
               <th>Ordre</th>
               <th>Image</th>
               <th>Nom</th>
+              <th>Description</th>
+              <th>Produits</th>
               <th></th>
             </tr>
           </thead>
@@ -420,6 +427,10 @@ function SubcategoriesPanel({ categoryId }: { categoryId: string }) {
                   )}
                 </td>
                 <td>{subcategory.name}</td>
+                <td className="muted" title={subcategory.description ?? ''}>
+                  {truncate(subcategory.description, 60)}
+                </td>
+                <td>{subcategory._count?.products ?? 0}</td>
                 <td>
                   <div className="actions">
                     <button onClick={() => startEdit(subcategory)}>
@@ -445,7 +456,7 @@ function SubcategoriesPanel({ categoryId }: { categoryId: string }) {
             ))}
             {subcategories?.length === 0 && (
               <tr>
-                <td colSpan={4} className="muted">
+                <td colSpan={6} className="muted">
                   Aucune sous-catégorie.
                 </td>
               </tr>

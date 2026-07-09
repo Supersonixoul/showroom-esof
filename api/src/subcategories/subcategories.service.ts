@@ -32,6 +32,7 @@ export class SubcategoriesService {
     return this.prisma.subcategory.findMany({
       where: query.categoryId ? { categoryId: query.categoryId } : undefined,
       orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+      include: { _count: { select: { products: true } } },
     });
   }
 
