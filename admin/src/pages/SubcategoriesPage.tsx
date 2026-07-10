@@ -199,7 +199,7 @@ export function SubcategoriesPage() {
 
       <div className="form-row" style={{ alignItems: 'flex-end' }}>
         <label>
-          Catégorie
+          Catégorie (sélectionner pour activer le réordonnancement)
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -307,7 +307,11 @@ export function SubcategoriesPage() {
                       className="icon-btn"
                       disabled={!reorderEnabled || index === 0}
                       aria-label="Monter"
-                      title="Monter"
+                      title={
+                        reorderEnabled
+                          ? 'Monter'
+                          : 'Sélectionnez une catégorie ci-dessus pour activer le réordonnancement'
+                      }
                       onClick={() =>
                         moveMutation.mutate({
                           id: subcategory.id,
@@ -325,7 +329,11 @@ export function SubcategoriesPage() {
                         index === sortedSubcategories.length - 1
                       }
                       aria-label="Descendre"
-                      title="Descendre"
+                      title={
+                        reorderEnabled
+                          ? 'Descendre'
+                          : 'Sélectionnez une catégorie ci-dessus pour activer le réordonnancement'
+                      }
                       onClick={() =>
                         moveMutation.mutate({
                           id: subcategory.id,

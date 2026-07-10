@@ -187,7 +187,11 @@ export function CategoriesPage() {
                       className="icon-btn"
                       disabled={!reorderEnabled || index === 0}
                       aria-label="Monter"
-                      title="Monter"
+                      title={
+                        reorderEnabled
+                          ? 'Monter'
+                          : 'Sélectionnez un groupement ci-dessus pour activer le réordonnancement'
+                      }
                       onClick={() =>
                         moveMutation.mutate({
                           id: category.id,
@@ -205,7 +209,11 @@ export function CategoriesPage() {
                         index === displayedCategories.length - 1
                       }
                       aria-label="Descendre"
-                      title="Descendre"
+                      title={
+                        reorderEnabled
+                          ? 'Descendre'
+                          : 'Sélectionnez un groupement ci-dessus pour activer le réordonnancement'
+                      }
                       onClick={() =>
                         moveMutation.mutate({
                           id: category.id,
