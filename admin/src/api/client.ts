@@ -2,6 +2,7 @@ import type {
   AuthUser,
   Brand,
   Category,
+  Gamme,
   LoginResult,
   Product,
   ProductImage,
@@ -121,6 +122,26 @@ export const subcategoriesApi = {
     }),
 };
 
+// ---- Gammes ---------------------------------------------------------------
+
+export const gammesApi = {
+  list: (brandId?: string) =>
+    request<Gamme[]>(brandId ? `/gammes?brandId=${brandId}` : '/gammes'),
+  create: (data: Partial<Gamme>) =>
+    request<Gamme>('/gammes', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<Gamme>) =>
+    request<Gamme>(`/gammes/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  remove: (id: string) => request<void>(`/gammes/${id}`, { method: 'DELETE' }),
+  move: (id: string, direction: 'up' | 'down') =>
+    request<Gamme>(`/gammes/${id}/move`, {
+      method: 'PATCH',
+      body: JSON.stringify({ direction }),
+    }),
+};
+
 // ---- Products -----------------------------------------------------------
 
 export const productsApi = {
@@ -186,7 +207,8 @@ export type UploadResource =
   | 'products'
   | 'promo-videos'
   | 'brands'
-  | 'subcategories';
+  | 'subcategories'
+  | 'gammes';
 
 export async function uploadMedia(
   file: File,

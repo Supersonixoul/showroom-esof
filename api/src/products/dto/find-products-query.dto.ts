@@ -12,4 +12,8 @@ export class FindProductsQueryDto {
   @IsOptional()
   @IsUUID()
   subcategoryId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  gammeId?: string;
 }

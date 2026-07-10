@@ -16,6 +16,7 @@ export class ProductsService {
 
   async create(dto: CreateProductDto) {
     await this.validateSubcategory(dto.categoryId, dto.subcategoryId);
+    await this.validateGamme(dto.brandId, dto.gammeId);
     return this.prisma.product.create({ data: dto });
   }
 
@@ -25,8 +26,9 @@ export class ProductsService {
         brandId: query.brandId,
         categoryId: query.categoryId,
         subcategoryId: query.subcategoryId,
+        gammeId: query.gammeId,
       },
-      include: { brand: true, category: true, subcategory: true },
+      include: { brand: true, category: true, subcategory: true, gamme: true },
       orderBy: { name: 'asc' },
     });
   }
@@ -38,6 +40,7 @@ export class ProductsService {
         brand: true,
         category: true,
         subcategory: true,
+        gamme: true,
         specs: true,
         images: { orderBy: { position: 'asc' } },
       },
@@ -51,6 +54,7 @@ export class ProductsService {
   async update(id: string, dto: UpdateProductDto) {
     const product = await this.findOne(id);
     const categoryId = dto.categoryId ?? product.categoryId;
+    const brandId = dto.brandId ?? product.brandId;
 
     if (dto.subcategoryId !== undefined) {
       await this.validateSubcategory(categoryId, dto.subcategoryId);
@@ -58,6 +62,14 @@ export class ProductsService {
       // La catégorie change sans préciser la sous-catégorie : vérifie que la
       // sous-catégorie existante (le cas échéant) reste cohérente.
       await this.validateSubcategory(categoryId, product.subcategoryId);
+    }
+
+    if (dto.gammeId !== undefined) {
+      await this.validateGamme(brandId, dto.gammeId);
+    } else if (dto.brandId) {
+      // La marque change sans préciser la gamme : vérifie que la gamme
+      // existante (le cas échéant) reste cohérente avec la nouvelle marque.
+      await this.validateGamme(brandId, product.gammeId);
     }
 
     return this.prisma.product.update({ where: { id }, data: dto });
@@ -83,6 +95,25 @@ export class ProductsService {
     if (subcategory.categoryId !== categoryId) {
       throw new BadRequestException(
         "La sous-catégorie sélectionnée n'appartient pas à la catégorie du produit",
+      );
+    }
+  }
+
+  /** Une gamme est toujours facultative, mais si présente elle doit
+   * appartenir à la marque du produit. */
+  private async validateGamme(brandId: string, gammeId?: string | null) {
+    if (!gammeId) {
+      return;
+    }
+    const gamme = await this.prisma.gamme.findUnique({
+      where: { id: gammeId },
+    });
+    if (!gamme) {
+      throw new NotFoundException(`Gamme ${gammeId} introuvable`);
+    }
+    if (gamme.brandId !== brandId) {
+      throw new BadRequestException(
+        "La gamme sélectionnée n'appartient pas à la marque du produit",
       );
     }
   }

@@ -4,6 +4,7 @@ import { useAuth } from './auth/AuthContext';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
 import { BrandsPage } from './pages/BrandsPage';
+import { GammesPage } from './pages/GammesPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { SubcategoriesPage } from './pages/SubcategoriesPage';
 import { ProductsPage } from './pages/ProductsPage';
@@ -31,6 +32,7 @@ function App() {
       >
         <Route index element={<Navigate to="/brands" replace />} />
         <Route path="/brands" element={<BrandsPage />} />
+        <Route path="/gammes" element={<GammesPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
         <Route path="/subcategories" element={<SubcategoriesPage />} />
         <Route path="/products" element={<ProductsPage />} />

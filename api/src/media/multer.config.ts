@@ -7,7 +7,7 @@ import type { MulterOptions } from '@nestjs/platform-express/multer/interfaces/m
 
 export const UPLOADS_ROOT = 'uploads';
 
-export const ALLOWED_UPLOAD_RESOURCES = ['products', 'promo-videos', 'brands', 'subcategories'] as const;
+export const ALLOWED_UPLOAD_RESOURCES = ['products', 'promo-videos', 'brands', 'subcategories', 'gammes'] as const;
 export type UploadResource = (typeof ALLOWED_UPLOAD_RESOURCES)[number];
 
 const ALLOWED_MIME_PREFIXES = ['image/', 'video/'];

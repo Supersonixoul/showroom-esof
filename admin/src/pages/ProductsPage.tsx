@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   brandsApi,
   categoriesApi,
+  gammesApi,
   mediaUrl,
   productsApi,
   subcategoriesApi,
@@ -28,12 +29,18 @@ export function ProductsPage() {
   const [brandId, setBrandId] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [subcategoryId, setSubcategoryId] = useState('');
+  const [gammeId, setGammeId] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const { data: subcategories } = useQuery({
     queryKey: ['subcategories', categoryId],
     queryFn: () => subcategoriesApi.list(categoryId),
     enabled: !!categoryId,
+  });
+  const { data: gammes } = useQuery({
+    queryKey: ['gammes', brandId],
+    queryFn: () => gammesApi.list(brandId),
+    enabled: !!brandId,
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -72,6 +79,7 @@ export function ProductsPage() {
     setBrandId('');
     setCategoryId('');
     setSubcategoryId('');
+    setGammeId('');
     setEditingId(null);
   }
 
@@ -83,6 +91,7 @@ export function ProductsPage() {
     setBrandId(product.brandId);
     setCategoryId(product.categoryId);
     setSubcategoryId(product.subcategoryId ?? '');
+    setGammeId(product.gammeId ?? '');
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -94,6 +103,7 @@ export function ProductsPage() {
       brandId,
       categoryId,
       subcategoryId: subcategoryId || null,
+      gammeId: gammeId || null,
     };
     if (editingId) {
       updateMutation.mutate({ id: editingId, data });
@@ -148,7 +158,10 @@ export function ProductsPage() {
             Marque
             <select
               value={brandId}
-              onChange={(e) => setBrandId(e.target.value)}
+              onChange={(e) => {
+                setBrandId(e.target.value);
+                setGammeId('');
+              }}
               required
             >
               <option value="" disabled>
@@ -157,6 +170,21 @@ export function ProductsPage() {
               {brands?.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Gamme (optionnel)
+            <select
+              value={gammeId}
+              onChange={(e) => setGammeId(e.target.value)}
+              disabled={!brandId}
+            >
+              <option value="">Aucune</option>
+              {gammes?.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
                 </option>
               ))}
             </select>

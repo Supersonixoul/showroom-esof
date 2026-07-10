@@ -24,8 +24,31 @@ model Brand {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   products  Product[]
+  gammes    Gamme[]
 
   @@map("brands")
+}
+
+/// Ligne de produits d'une marque (ex. Legrand -> Céliane/Dooxie/Mosaic).
+/// Toujours rattachée à une marque (relation obligatoire) ; toujours
+/// facultative côté Product — voir Product.gammeId.
+model Gamme {
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  imageUrl    String? @map("image_url")
+  displayOrder Int    @default(0) @map("display_order")
+
+  brandId String @map("brand_id") @db.Uuid
+  brand   Brand  @relation(fields: [brandId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@unique([brandId, name])
+  @@map("gammes")
 }
 
 model Category {
@@ -80,6 +103,9 @@ model Product {
 
   subcategoryId String?      @map("subcategory_id") @db.Uuid
   subcategory   Subcategory? @relation(fields: [subcategoryId], references: [id])
+
+  gammeId String? @map("gamme_id") @db.Uuid
+  gamme   Gamme?  @relation(fields: [gammeId], references: [id])
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

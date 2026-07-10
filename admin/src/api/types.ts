@@ -30,6 +30,19 @@ export interface Subcategory {
   updatedAt: string;
 }
 
+export interface Gamme {
+  id: string;
+  name: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  displayOrder: number;
+  brandId: string;
+  brand?: Brand;
+  _count?: { products: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProductSpec {
   id: string;
   label: string;
@@ -53,9 +66,11 @@ export interface Product {
   brandId: string;
   categoryId: string;
   subcategoryId?: string | null;
+  gammeId?: string | null;
   brand?: Brand;
   category?: Category;
   subcategory?: Subcategory | null;
+  gamme?: Gamme | null;
   specs?: ProductSpec[];
   images?: ProductImage[];
   createdAt: string;

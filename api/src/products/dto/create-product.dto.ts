@@ -32,4 +32,8 @@ export class CreateProductDto {
   @IsOptional()
   @IsUUID()
   subcategoryId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  gammeId?: string | null;
 }

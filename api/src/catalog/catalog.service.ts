@@ -106,19 +106,30 @@ export class CatalogService {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 8;
     const baseWhere = { categoryId: query.categoryId, isActive: true };
-    // subcategoryId absent (puce "Toutes") -> pas de filtre, inclut aussi les
-    // produits sans sous-catégorie.
+    // subcategoryId/gammeId absents (puce "Toutes") -> pas de filtre, inclut
+    // aussi les produits sans sous-catégorie / sans gamme.
     const filterWhere = {
       ...baseWhere,
       brandId: query.brandId,
       subcategoryId: query.subcategoryId,
+      gammeId: query.gammeId,
     };
 
-    const [brandRows, totalItems, products] = await Promise.all([
+    const [brandRows, gammeRows, totalItems, products] = await Promise.all([
       this.prisma.product.findMany({
         where: baseWhere,
         select: { brand: { select: { id: true, name: true } } },
       }),
+      // Gammes de la marque filtrée présentes dans la catégorie — n'existe
+      // que si un filtre marque est actif (une gamme appartient toujours à
+      // une marque). Indépendant du filtre sous-catégorie/gamme en cours
+      // pour que la ligne de puces reste stable pendant la sélection.
+      query.brandId
+        ? this.prisma.product.findMany({
+            where: { ...baseWhere, brandId: query.brandId },
+            select: { gamme: { select: { id: true, name: true } } },
+          })
+        : Promise.resolve([]),
       this.prisma.product.count({ where: filterWhere }),
       this.prisma.product.findMany({
         where: filterWhere,
@@ -135,6 +146,14 @@ export class CatalogService {
     }
     const brands = Array.from(brandById.values()).sort((a, b) => a.name.localeCompare(b.name));
 
+    const gammeById = new Map<string, { id: string; name: string }>();
+    for (const row of gammeRows) {
+      if (row.gamme) {
+        gammeById.set(row.gamme.id, row.gamme);
+      }
+    }
+    const gammes = Array.from(gammeById.values()).sort((a, b) => a.name.localeCompare(b.name));
+
     return {
       items: products.map((product) => ({
         id: product.id,
@@ -149,6 +168,7 @@ export class CatalogService {
       totalItems,
       totalPages: Math.max(1, Math.ceil(totalItems / pageSize)),
       brands,
+      gammes,
     };
   }
 
@@ -159,6 +179,7 @@ export class CatalogService {
       include: {
         brand: true,
         category: true,
+        gamme: true,
         images: { orderBy: { position: 'asc' } },
       },
     });
@@ -176,6 +197,7 @@ export class CatalogService {
         logoUrl: product.brand.logoUrl,
       },
       category: { id: product.category.id, name: product.category.name },
+      gamme: product.gamme ? { id: product.gamme.id, name: product.gamme.name } : null,
       images: product.images.map((image) => image.url),
     };
   }

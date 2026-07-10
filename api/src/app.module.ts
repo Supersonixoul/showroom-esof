@@ -9,6 +9,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { BrandsModule } from './brands/brands.module';
 import { CategoriesModule } from './categories/categories.module';
 import { SubcategoriesModule } from './subcategories/subcategories.module';
+import { GammesModule } from './gammes/gammes.module';
 import { ProductsModule } from './products/products.module';
 import { MediaModule } from './media/media.module';
 import { VideosModule } from './videos/videos.module';
@@ -32,6 +33,7 @@ import { QuotesModule } from './quotes/quotes.module';
     ClientsModule,
     QuotesModule,
     BrandsModule,
+    GammesModule,
     CategoriesModule,
     SubcategoriesModule,
     ProductsModule,
