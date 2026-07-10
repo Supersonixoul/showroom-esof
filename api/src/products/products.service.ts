@@ -211,6 +211,46 @@ export class ProductsService {
     await this.touch(productId);
   }
 
+  async moveImage(productId: string, imageId: string, dto: MoveProductDto) {
+    const image = await this.prisma.productImage.findUnique({
+      where: { id: imageId },
+    });
+    if (!image || image.productId !== productId) {
+      throw new NotFoundException(
+        `Image ${imageId} introuvable pour ce produit`,
+      );
+    }
+
+    const neighbor = await this.prisma.productImage.findFirst({
+      where: {
+        productId,
+        position:
+          dto.direction === 'up'
+            ? { lt: image.position }
+            : { gt: image.position },
+      },
+      orderBy: { position: dto.direction === 'up' ? 'desc' : 'asc' },
+    });
+
+    if (!neighbor) {
+      return image;
+    }
+
+    const [, updated] = await this.prisma.$transaction([
+      this.prisma.productImage.update({
+        where: { id: neighbor.id },
+        data: { position: image.position },
+      }),
+      this.prisma.productImage.update({
+        where: { id: image.id },
+        data: { position: neighbor.position },
+      }),
+    ]);
+    await this.touch(productId);
+
+    return updated;
+  }
+
   /** Force la mise à jour de `updatedAt` du produit (utilisé pour la sync différentielle). */
   private touch(productId: string) {
     return this.prisma.product.update({

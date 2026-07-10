@@ -404,6 +404,12 @@ function ProductDetail({ productId }: { productId: string }) {
     onSuccess: invalidate,
   });
 
+  const moveImageMutation = useMutation({
+    mutationFn: ({ imageId, direction }: { imageId: string; direction: 'up' | 'down' }) =>
+      productsApi.moveImage(productId, imageId, direction),
+    onSuccess: invalidate,
+  });
+
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -492,9 +498,35 @@ function ProductDetail({ productId }: { productId: string }) {
 
       <h4 style={{ marginTop: 20 }}>Images</h4>
       <div className="form-row">
-        {product.images?.map((image) => (
+        {product.images?.map((image, index) => (
           <div key={image.id} style={{ textAlign: 'center' }}>
             <img className="thumb" src={mediaUrl(image.url)} alt="" style={{ width: 80, height: 80 }} />
+            <div className="reorder-buttons" style={{ justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="icon-btn"
+                disabled={index === 0}
+                aria-label="Précédente"
+                title="Précédente"
+                onClick={() =>
+                  moveImageMutation.mutate({ imageId: image.id, direction: 'up' })
+                }
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                className="icon-btn"
+                disabled={index === (product.images?.length ?? 0) - 1}
+                aria-label="Suivante"
+                title="Suivante"
+                onClick={() =>
+                  moveImageMutation.mutate({ imageId: image.id, direction: 'down' })
+                }
+              >
+                →
+              </button>
+            </div>
             <div>
               <button
                 className="danger"

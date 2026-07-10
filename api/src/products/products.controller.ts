@@ -97,4 +97,13 @@ export class ProductsController {
   ) {
     return this.productsService.removeImage(id, imageId);
   }
+
+  @Patch(':id/images/:imageId/move')
+  moveImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('imageId', ParseUUIDPipe) imageId: string,
+    @Body() dto: MoveProductDto,
+  ) {
+    return this.productsService.moveImage(id, imageId, dto);
+  }
 }

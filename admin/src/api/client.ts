@@ -182,6 +182,11 @@ export const productsApi = {
       method: 'PATCH',
       body: JSON.stringify({ direction }),
     }),
+  moveImage: (productId: string, imageId: string, direction: 'up' | 'down') =>
+    request<ProductImage>(`/products/${productId}/images/${imageId}/move`, {
+      method: 'PATCH',
+      body: JSON.stringify({ direction }),
+    }),
 };
 
 // ---- Videos -----------------------------------------------------------
