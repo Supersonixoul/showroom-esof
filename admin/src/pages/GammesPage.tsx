@@ -159,7 +159,15 @@ export function GammesPage() {
     return a.displayOrder - b.displayOrder;
   });
 
-  const reorderEnabled = brandFilter !== '';
+  function isFirstInGroup(index: number) {
+    if (index === 0) return true;
+    return sortedGammes[index - 1].brandId !== sortedGammes[index].brandId;
+  }
+
+  function isLastInGroup(index: number) {
+    if (index === sortedGammes.length - 1) return true;
+    return sortedGammes[index + 1].brandId !== sortedGammes[index].brandId;
+  }
 
   return (
     <div>
@@ -298,7 +306,7 @@ export function GammesPage() {
                     <button
                       type="button"
                       className="icon-btn"
-                      disabled={!reorderEnabled || index === 0}
+                      disabled={isFirstInGroup(index)}
                       aria-label="Monter"
                       title="Monter"
                       onClick={() =>
@@ -310,9 +318,7 @@ export function GammesPage() {
                     <button
                       type="button"
                       className="icon-btn"
-                      disabled={
-                        !reorderEnabled || index === sortedGammes.length - 1
-                      }
+                      disabled={isLastInGroup(index)}
                       aria-label="Descendre"
                       title="Descendre"
                       onClick={() =>

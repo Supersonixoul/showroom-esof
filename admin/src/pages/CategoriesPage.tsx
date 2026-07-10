@@ -78,7 +78,6 @@ export function CategoriesPage() {
     return categories?.find((c) => c.id === id)?.name ?? '—';
   }
 
-  const reorderEnabled = parentFilter !== '';
   const displayedCategories = [...(categories ?? [])]
     .filter((c) => {
       if (parentFilter === '') return true;
@@ -86,11 +85,27 @@ export function CategoriesPage() {
       return c.parentId === parentFilter;
     })
     .sort((a, b) => {
-      if (!reorderEnabled && a.parentId !== b.parentId) {
+      if (a.parentId !== b.parentId) {
         return parentName(a.parentId).localeCompare(parentName(b.parentId));
       }
       return a.displayOrder - b.displayOrder;
     });
+
+  function isFirstInGroup(index: number) {
+    if (index === 0) return true;
+    return (
+      displayedCategories[index - 1].parentId !==
+      displayedCategories[index].parentId
+    );
+  }
+
+  function isLastInGroup(index: number) {
+    if (index === displayedCategories.length - 1) return true;
+    return (
+      displayedCategories[index + 1].parentId !==
+      displayedCategories[index].parentId
+    );
+  }
 
   return (
     <div>
@@ -149,7 +164,7 @@ export function CategoriesPage() {
 
       <div className="form-row" style={{ alignItems: 'flex-end' }}>
         <label>
-          Regrouper par catégorie parente (pour réordonner)
+          Regrouper par catégorie parente
           <select
             value={parentFilter}
             onChange={(e) => setParentFilter(e.target.value)}
@@ -185,13 +200,9 @@ export function CategoriesPage() {
                     <button
                       type="button"
                       className="icon-btn"
-                      disabled={!reorderEnabled || index === 0}
+                      disabled={isFirstInGroup(index)}
                       aria-label="Monter"
-                      title={
-                        reorderEnabled
-                          ? 'Monter'
-                          : 'Sélectionnez un groupement ci-dessus pour activer le réordonnancement'
-                      }
+                      title="Monter"
                       onClick={() =>
                         moveMutation.mutate({
                           id: category.id,
@@ -204,16 +215,9 @@ export function CategoriesPage() {
                     <button
                       type="button"
                       className="icon-btn"
-                      disabled={
-                        !reorderEnabled ||
-                        index === displayedCategories.length - 1
-                      }
+                      disabled={isLastInGroup(index)}
                       aria-label="Descendre"
-                      title={
-                        reorderEnabled
-                          ? 'Descendre'
-                          : 'Sélectionnez un groupement ci-dessus pour activer le réordonnancement'
-                      }
+                      title="Descendre"
                       onClick={() =>
                         moveMutation.mutate({
                           id: category.id,

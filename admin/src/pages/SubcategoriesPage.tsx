@@ -164,7 +164,21 @@ export function SubcategoriesPage() {
     return a.displayOrder - b.displayOrder;
   });
 
-  const reorderEnabled = categoryFilter !== '';
+  function isFirstInGroup(index: number) {
+    if (index === 0) return true;
+    return (
+      sortedSubcategories[index - 1].categoryId !==
+      sortedSubcategories[index].categoryId
+    );
+  }
+
+  function isLastInGroup(index: number) {
+    if (index === sortedSubcategories.length - 1) return true;
+    return (
+      sortedSubcategories[index + 1].categoryId !==
+      sortedSubcategories[index].categoryId
+    );
+  }
 
   return (
     <div>
@@ -199,7 +213,7 @@ export function SubcategoriesPage() {
 
       <div className="form-row" style={{ alignItems: 'flex-end' }}>
         <label>
-          Catégorie (sélectionner pour activer le réordonnancement)
+          Catégorie
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -305,13 +319,9 @@ export function SubcategoriesPage() {
                     <button
                       type="button"
                       className="icon-btn"
-                      disabled={!reorderEnabled || index === 0}
+                      disabled={isFirstInGroup(index)}
                       aria-label="Monter"
-                      title={
-                        reorderEnabled
-                          ? 'Monter'
-                          : 'Sélectionnez une catégorie ci-dessus pour activer le réordonnancement'
-                      }
+                      title="Monter"
                       onClick={() =>
                         moveMutation.mutate({
                           id: subcategory.id,
@@ -324,16 +334,9 @@ export function SubcategoriesPage() {
                     <button
                       type="button"
                       className="icon-btn"
-                      disabled={
-                        !reorderEnabled ||
-                        index === sortedSubcategories.length - 1
-                      }
+                      disabled={isLastInGroup(index)}
                       aria-label="Descendre"
-                      title={
-                        reorderEnabled
-                          ? 'Descendre'
-                          : 'Sélectionnez une catégorie ci-dessus pour activer le réordonnancement'
-                      }
+                      title="Descendre"
                       onClick={() =>
                         moveMutation.mutate({
                           id: subcategory.id,
