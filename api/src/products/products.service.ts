@@ -9,6 +9,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { FindProductsQueryDto } from './dto/find-products-query.dto';
 import { CreateProductSpecDto } from './dto/create-product-spec.dto';
 import { CreateProductImageDto } from './dto/create-product-image.dto';
+import { MoveProductDto } from './dto/move-product.dto';
 
 @Injectable()
 export class ProductsService {
@@ -17,7 +18,14 @@ export class ProductsService {
   async create(dto: CreateProductDto) {
     await this.validateSubcategory(dto.categoryId, dto.subcategoryId);
     await this.validateGamme(dto.brandId, dto.gammeId);
-    return this.prisma.product.create({ data: dto });
+
+    const { _max } = await this.prisma.product.aggregate({
+      _max: { displayOrder: true },
+      where: { categoryId: dto.categoryId },
+    });
+    const displayOrder = (_max.displayOrder ?? -1) + 1;
+
+    return this.prisma.product.create({ data: { ...dto, displayOrder } });
   }
 
   findAll(query: FindProductsQueryDto) {
@@ -29,7 +37,7 @@ export class ProductsService {
         gammeId: query.gammeId,
       },
       include: { brand: true, category: true, subcategory: true, gamme: true },
-      orderBy: { name: 'asc' },
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
     });
   }
 
@@ -121,6 +129,38 @@ export class ProductsService {
   async remove(id: string) {
     await this.findOne(id);
     await this.prisma.product.delete({ where: { id } });
+  }
+
+  async move(id: string, dto: MoveProductDto) {
+    const product = await this.findOne(id);
+
+    const neighbor = await this.prisma.product.findFirst({
+      where: {
+        categoryId: product.categoryId,
+        displayOrder:
+          dto.direction === 'up'
+            ? { lt: product.displayOrder }
+            : { gt: product.displayOrder },
+      },
+      orderBy: { displayOrder: dto.direction === 'up' ? 'desc' : 'asc' },
+    });
+
+    if (!neighbor) {
+      return product;
+    }
+
+    const [, updated] = await this.prisma.$transaction([
+      this.prisma.product.update({
+        where: { id: neighbor.id },
+        data: { displayOrder: product.displayOrder },
+      }),
+      this.prisma.product.update({
+        where: { id: product.id },
+        data: { displayOrder: neighbor.displayOrder },
+      }),
+    ]);
+
+    return updated;
   }
 
   // ---- Caractéristiques (specs) ---------------------------------------

@@ -72,6 +72,12 @@ export function ProductsPage() {
     },
   });
 
+  const moveMutation = useMutation({
+    mutationFn: ({ id, direction }: { id: string; direction: 'up' | 'down' }) =>
+      productsApi.move(id, direction),
+    onSuccess: invalidate,
+  });
+
   function resetForm() {
     setName('');
     setReference('');
@@ -120,6 +126,23 @@ export function ProductsPage() {
   }
   function categoryName(id: string) {
     return categories?.find((c) => c.id === id)?.name ?? '—';
+  }
+
+  const sortedProducts = [...(products ?? [])].sort((a, b) => {
+    if (a.categoryId !== b.categoryId) {
+      return categoryName(a.categoryId).localeCompare(categoryName(b.categoryId));
+    }
+    return a.displayOrder - b.displayOrder;
+  });
+
+  function isFirstInGroup(index: number) {
+    if (index === 0) return true;
+    return sortedProducts[index - 1].categoryId !== sortedProducts[index].categoryId;
+  }
+
+  function isLastInGroup(index: number) {
+    if (index === sortedProducts.length - 1) return true;
+    return sortedProducts[index + 1].categoryId !== sortedProducts[index].categoryId;
   }
 
   return (
@@ -253,6 +276,7 @@ export function ProductsPage() {
         <table>
           <thead>
             <tr>
+              <th>Ordre</th>
               <th>Nom</th>
               <th>Marque</th>
               <th>Catégorie</th>
@@ -260,8 +284,36 @@ export function ProductsPage() {
             </tr>
           </thead>
           <tbody>
-            {products?.map((product) => (
+            {sortedProducts.map((product, index) => (
               <tr key={product.id}>
+                <td>
+                  <div className="reorder-buttons">
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      disabled={isFirstInGroup(index)}
+                      aria-label="Monter"
+                      title="Monter"
+                      onClick={() =>
+                        moveMutation.mutate({ id: product.id, direction: 'up' })
+                      }
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      disabled={isLastInGroup(index)}
+                      aria-label="Descendre"
+                      title="Descendre"
+                      onClick={() =>
+                        moveMutation.mutate({ id: product.id, direction: 'down' })
+                      }
+                    >
+                      ↓
+                    </button>
+                  </div>
+                </td>
                 <td>{product.name}</td>
                 <td className="muted">{brandName(product.brandId)}</td>
                 <td className="muted">{categoryName(product.categoryId)}</td>
@@ -293,9 +345,9 @@ export function ProductsPage() {
                 </td>
               </tr>
             ))}
-            {products?.length === 0 && (
+            {sortedProducts.length === 0 && (
               <tr>
-                <td colSpan={4} className="muted">
+                <td colSpan={5} className="muted">
                   Aucun produit.
                 </td>
               </tr>

@@ -18,6 +18,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { FindProductsQueryDto } from './dto/find-products-query.dto';
 import { CreateProductSpecDto } from './dto/create-product-spec.dto';
 import { CreateProductImageDto } from './dto/create-product-image.dto';
+import { MoveProductDto } from './dto/move-product.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -56,6 +57,11 @@ export class ProductsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.remove(id);
+  }
+
+  @Patch(':id/move')
+  move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MoveProductDto) {
+    return this.productsService.move(id, dto);
   }
 
   @Post(':id/specs')

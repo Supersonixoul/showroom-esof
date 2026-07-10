@@ -63,6 +63,7 @@ export interface Product {
   reference?: string | null;
   description?: string | null;
   isActive: boolean;
+  displayOrder: number;
   brandId: string;
   categoryId: string;
   subcategoryId?: string | null;

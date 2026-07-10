@@ -134,7 +134,7 @@ export class CatalogService {
       this.prisma.product.findMany({
         where: filterWhere,
         include: { brand: true, images: { orderBy: { position: 'asc' }, take: 1 } },
-        orderBy: { name: 'asc' },
+        orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),

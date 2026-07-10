@@ -177,6 +177,11 @@ export const productsApi = {
     request<void>(`/products/${productId}/images/${imageId}`, {
       method: 'DELETE',
     }),
+  move: (id: string, direction: 'up' | 'down') =>
+    request<Product>(`/products/${id}/move`, {
+      method: 'PATCH',
+      body: JSON.stringify({ direction }),
+    }),
 };
 
 // ---- Videos -----------------------------------------------------------
