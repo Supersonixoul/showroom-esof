@@ -88,6 +88,11 @@ export const categoriesApi = {
     }),
   remove: (id: string) =>
     request<void>(`/categories/${id}`, { method: 'DELETE' }),
+  move: (id: string, direction: 'up' | 'down') =>
+    request<Category>(`/categories/${id}/move`, {
+      method: 'PATCH',
+      body: JSON.stringify({ direction }),
+    }),
 };
 
 // ---- Subcategories --------------------------------------------------------

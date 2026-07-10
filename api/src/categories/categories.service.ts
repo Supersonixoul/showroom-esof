@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { MoveCategoryDto } from './dto/move-category.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -16,12 +17,19 @@ export class CategoriesService {
     if (dto.parentId) {
       await this.findOne(dto.parentId);
     }
-    return this.prisma.category.create({ data: dto });
+
+    const { _max } = await this.prisma.category.aggregate({
+      _max: { displayOrder: true },
+      where: { parentId: dto.parentId ?? null },
+    });
+    const displayOrder = (_max.displayOrder ?? -1) + 1;
+
+    return this.prisma.category.create({ data: { ...dto, displayOrder } });
   }
 
   findAll() {
     return this.prisma.category.findMany({
-      orderBy: { name: 'asc' },
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
       include: { children: true },
     });
   }
@@ -78,5 +86,38 @@ export class CategoriesService {
     }
 
     await this.prisma.category.delete({ where: { id } });
+  }
+
+  async move(id: string, dto: MoveCategoryDto) {
+    const category = await this.findOne(id);
+
+    const neighbor = await this.prisma.category.findFirst({
+      where: {
+        parentId: category.parentId,
+        displayOrder:
+          dto.direction === 'up'
+            ? { lt: category.displayOrder }
+            : { gt: category.displayOrder },
+      },
+      orderBy: { displayOrder: dto.direction === 'up' ? 'desc' : 'asc' },
+    });
+
+    if (!neighbor) {
+      // Déjà en première (up) ou dernière (down) position : rien à faire.
+      return category;
+    }
+
+    const [, updated] = await this.prisma.$transaction([
+      this.prisma.category.update({
+        where: { id: neighbor.id },
+        data: { displayOrder: category.displayOrder },
+      }),
+      this.prisma.category.update({
+        where: { id: category.id },
+        data: { displayOrder: neighbor.displayOrder },
+      }),
+    ]);
+
+    return updated;
   }
 }

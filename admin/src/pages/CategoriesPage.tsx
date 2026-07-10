@@ -39,6 +39,14 @@ export function CategoriesPage() {
     onSuccess: invalidate,
   });
 
+  const moveMutation = useMutation({
+    mutationFn: ({ id, direction }: { id: string; direction: 'up' | 'down' }) =>
+      categoriesApi.move(id, direction),
+    onSuccess: invalidate,
+  });
+
+  const [parentFilter, setParentFilter] = useState('');
+
   function resetForm() {
     setName('');
     setParentId('');
@@ -69,6 +77,20 @@ export function CategoriesPage() {
     if (!id) return '—';
     return categories?.find((c) => c.id === id)?.name ?? '—';
   }
+
+  const reorderEnabled = parentFilter !== '';
+  const displayedCategories = [...(categories ?? [])]
+    .filter((c) => {
+      if (parentFilter === '') return true;
+      if (parentFilter === 'root') return !c.parentId;
+      return c.parentId === parentFilter;
+    })
+    .sort((a, b) => {
+      if (!reorderEnabled && a.parentId !== b.parentId) {
+        return parentName(a.parentId).localeCompare(parentName(b.parentId));
+      }
+      return a.displayOrder - b.displayOrder;
+    });
 
   return (
     <div>
@@ -125,20 +147,76 @@ export function CategoriesPage() {
         </div>
       </form>
 
+      <div className="form-row" style={{ alignItems: 'flex-end' }}>
+        <label>
+          Regrouper par catégorie parente (pour réordonner)
+          <select
+            value={parentFilter}
+            onChange={(e) => setParentFilter(e.target.value)}
+          >
+            <option value="">Toutes (tri alphabétique)</option>
+            <option value="root">Racines</option>
+            {categories?.map((c) => (
+              <option key={c.id} value={c.id}>
+                Enfants de {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
       {isLoading ? (
         <p className="muted">Chargement…</p>
       ) : (
         <table>
           <thead>
             <tr>
+              <th>Ordre</th>
               <th>Nom</th>
               <th>Parente</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {categories?.map((category) => (
+            {displayedCategories.map((category, index) => (
               <tr key={category.id}>
+                <td>
+                  <div className="reorder-buttons">
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      disabled={!reorderEnabled || index === 0}
+                      aria-label="Monter"
+                      title="Monter"
+                      onClick={() =>
+                        moveMutation.mutate({
+                          id: category.id,
+                          direction: 'up',
+                        })
+                      }
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      disabled={
+                        !reorderEnabled ||
+                        index === displayedCategories.length - 1
+                      }
+                      aria-label="Descendre"
+                      title="Descendre"
+                      onClick={() =>
+                        moveMutation.mutate({
+                          id: category.id,
+                          direction: 'down',
+                        })
+                      }
+                    >
+                      ↓
+                    </button>
+                  </div>
+                </td>
                 <td>{category.name}</td>
                 <td className="muted">{parentName(category.parentId)}</td>
                 <td>
@@ -164,9 +242,9 @@ export function CategoriesPage() {
                 </td>
               </tr>
             ))}
-            {categories?.length === 0 && (
+            {displayedCategories.length === 0 && (
               <tr>
-                <td colSpan={3} className="muted">
+                <td colSpan={4} className="muted">
                   Aucune catégorie.
                 </td>
               </tr>
