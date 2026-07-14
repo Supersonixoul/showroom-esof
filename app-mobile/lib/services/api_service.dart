@@ -6,11 +6,10 @@ import 'package:http/http.dart' as http;
 import '../models/catalog_models.dart';
 
 class ApiService {
-  /// 10.0.2.2 = l'hôte vu depuis l'émulateur Android ; localhost sur les
-  /// autres cibles (iOS simulator, desktop). À terme, adresse de l'API
-  /// configurable (utile pour un test sur téléphone physique).
+  /// IP locale du PC hôte (réseau Wi-Fi), pour tester sur téléphone Android
+  /// physique — remplace 10.0.2.2 (émulateur) / localhost (desktop).
   static String get baseUrl {
-    if (Platform.isAndroid) return 'http://10.0.2.2:3000';
+    if (Platform.isAndroid) return 'http://192.168.11.150:3000';
     return 'http://localhost:3000';
   }
 
