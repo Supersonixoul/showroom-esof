@@ -21,7 +21,7 @@ class DatabaseService {
     final path = join(dbPath, 'showroom_mobile.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE IF NOT EXISTS brands (
@@ -43,6 +43,7 @@ class DatabaseService {
             name TEXT NOT NULL,
             reference TEXT,
             description TEXT,
+            price REAL,
             isActive INTEGER NOT NULL,
             brandId TEXT NOT NULL,
             categoryId TEXT NOT NULL
@@ -71,6 +72,9 @@ class DatabaseService {
         if (oldVersion < 2) {
           await _createSyncMetaTable(db);
           await _createPendingQuotesTable(db);
+        }
+        if (oldVersion < 3) {
+          await db.execute('ALTER TABLE products ADD COLUMN price REAL');
         }
       },
     );

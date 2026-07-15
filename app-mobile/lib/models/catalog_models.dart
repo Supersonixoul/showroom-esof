@@ -114,6 +114,7 @@ class Product {
   final String name;
   final String? reference;
   final String? description;
+  final double? price;
   final bool isActive;
   final String brandId;
   final String categoryId;
@@ -125,6 +126,7 @@ class Product {
     required this.name,
     this.reference,
     this.description,
+    this.price,
     required this.isActive,
     required this.brandId,
     required this.categoryId,
@@ -145,6 +147,10 @@ class Product {
       name: json['name'] as String,
       reference: json['reference'] as String?,
       description: json['description'] as String?,
+      // Prisma Decimal est sérialisé en JSON sous forme de chaîne.
+      price: json['price'] != null
+          ? double.tryParse(json['price'].toString())
+          : null,
       isActive: json['isActive'] as bool,
       brandId: json['brandId'] as String,
       categoryId: json['categoryId'] as String,
@@ -163,6 +169,7 @@ class Product {
       name: map['name'] as String,
       reference: map['reference'] as String?,
       description: map['description'] as String?,
+      price: (map['price'] as num?)?.toDouble(),
       isActive: (map['isActive'] as int) == 1,
       brandId: map['brandId'] as String,
       categoryId: map['categoryId'] as String,
@@ -176,6 +183,7 @@ class Product {
         'name': name,
         'reference': reference,
         'description': description,
+        'price': price,
         'isActive': isActive ? 1 : 0,
         'brandId': brandId,
         'categoryId': categoryId,
