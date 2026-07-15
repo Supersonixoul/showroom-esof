@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -15,6 +16,7 @@ export class CreateProductDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(30)
   reference?: string;
 
   @IsOptional()

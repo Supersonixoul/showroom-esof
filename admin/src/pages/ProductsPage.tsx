@@ -184,6 +184,7 @@ export function ProductsPage() {
             <input
               value={reference}
               onChange={(e) => setReference(e.target.value)}
+              maxLength={30}
             />
           </label>
         </div>
