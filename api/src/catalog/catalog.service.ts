@@ -93,6 +93,7 @@ export class CatalogService {
       subcategories: category.subcategories.map((subcategory) => ({
         id: subcategory.id,
         name: subcategory.name,
+        imageUrl: subcategory.imageUrl,
         productCount: subcategory._count.products,
       })),
     }));

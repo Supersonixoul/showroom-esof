@@ -374,6 +374,15 @@ export const TV_PAGE_HTML = `<!doctype html>
     padding: 10px 24px;
     font-size: 24px;
     color: #fff;
+    display: flex;
+    align-items: center;
+  }
+  .chip-thumb {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 12px;
   }
   .chip.active {
     background: rgba(255, 204, 0, 0.22);

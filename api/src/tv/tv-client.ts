@@ -770,7 +770,7 @@ export const TV_CLIENT_JS = `(function () {
   // supplémentaire). "Toutes" (index 0, subcategoryId=null) inclut aussi les
   // produits sans sous-catégorie, puisque le filtre est alors simplement omis
   // côté API (voir catalog.service.ts getCatalogProducts).
-  function makeSubChip(label, subcategoryId, index) {
+  function makeSubChip(label, subcategoryId, index, imageUrl) {
     var chip = document.createElement('div');
     var classes = 'chip';
     if (productsState.subcategoryId === subcategoryId) {
@@ -780,7 +780,13 @@ export const TV_CLIENT_JS = `(function () {
       classes += ' focused';
     }
     chip.className = classes;
-    chip.textContent = label;
+    if (imageUrl) {
+      var thumb = document.createElement('img');
+      thumb.className = 'chip-thumb';
+      setImageWithFallback(thumb, imageUrl);
+      chip.appendChild(thumb);
+    }
+    chip.appendChild(document.createTextNode(label));
     chip.addEventListener('click', function () {
       productsState.subChipsFocusIndex = index;
       selectSubChip(subcategoryId);
@@ -795,10 +801,10 @@ export const TV_CLIENT_JS = `(function () {
       return;
     }
     catSubChips.className = '';
-    catSubChips.appendChild(makeSubChip('Toutes', null, 0));
+    catSubChips.appendChild(makeSubChip('Toutes', null, 0, null));
     for (var i = 0; i < productsState.subcategories.length; i++) {
       var s = productsState.subcategories[i];
-      catSubChips.appendChild(makeSubChip(s.name, s.id, i + 1));
+      catSubChips.appendChild(makeSubChip(s.name, s.id, i + 1, s.imageUrl));
     }
   }
 
