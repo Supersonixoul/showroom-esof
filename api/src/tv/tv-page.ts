@@ -466,6 +466,7 @@ export const TV_PAGE_HTML = `<!doctype html>
     flex-direction: column;
     justify-content: center;
     min-width: 0;
+    overflow-y: auto;
   }
   #cat-detail-brand {
     font-size: 24px;
@@ -495,6 +496,7 @@ export const TV_PAGE_HTML = `<!doctype html>
     opacity: 0.9;
     max-height: 40vh;
     overflow: auto;
+    flex-shrink: 0;
   }
 </style>
 </head>
