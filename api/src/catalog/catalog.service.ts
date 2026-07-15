@@ -129,7 +129,7 @@ export class CatalogService {
       query.brandId
         ? this.prisma.product.findMany({
             where: { ...baseWhere, brandId: query.brandId },
-            select: { gamme: { select: { id: true, name: true } } },
+            select: { gamme: { select: { id: true, name: true, imageUrl: true } } },
           })
         : Promise.resolve([]),
       this.prisma.product.count({ where: filterWhere }),
@@ -148,7 +148,7 @@ export class CatalogService {
     }
     const brands = Array.from(brandById.values()).sort((a, b) => a.name.localeCompare(b.name));
 
-    const gammeById = new Map<string, { id: string; name: string }>();
+    const gammeById = new Map<string, { id: string; name: string; imageUrl: string | null }>();
     for (const row of gammeRows) {
       if (row.gamme) {
         gammeById.set(row.gamme.id, row.gamme);

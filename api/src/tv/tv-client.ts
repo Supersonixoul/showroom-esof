@@ -48,6 +48,7 @@ export const TV_CLIENT_JS = `(function () {
   var catProductsScreen = document.getElementById('cat-products-screen');
   var catSubChips = document.getElementById('cat-sub-chips');
   var catBrandChips = document.getElementById('cat-brand-chips');
+  var catGammeChips = document.getElementById('cat-gamme-chips');
   var catProductsGrid = document.getElementById('cat-products-grid');
   var catEmpty = document.getElementById('cat-empty');
   var catPagination = document.getElementById('cat-pagination');
@@ -672,6 +673,8 @@ export const TV_CLIENT_JS = `(function () {
       brands: [],
       subcategories: cat.subcategories || [],
       subcategoryId: null,
+      gammes: [],
+      gammeId: null,
       items: [],
       page: 1,
       pageSize: 8,
@@ -679,6 +682,7 @@ export const TV_CLIENT_JS = `(function () {
       focusIndex: 0,
       chipsFocusIndex: 0,
       subChipsFocusIndex: 0,
+      gammeChipsFocusIndex: 0,
       zone: 'grid',
       pendingFocus: null,
     };
@@ -698,6 +702,9 @@ export const TV_CLIENT_JS = `(function () {
     if (productsState.subcategoryId) {
       url += '&subcategoryId=' + encodeURIComponent(productsState.subcategoryId);
     }
+    if (productsState.gammeId) {
+      url += '&gammeId=' + encodeURIComponent(productsState.gammeId);
+    }
     try {
       fetch(url)
         .then(function (res) {
@@ -710,6 +717,7 @@ export const TV_CLIENT_JS = `(function () {
           productsState.items = data.items;
           productsState.totalPages = data.totalPages;
           productsState.brands = data.brands;
+          productsState.gammes = data.gammes;
           if (productsState.pendingFocus === 'last') {
             productsState.focusIndex = Math.max(0, productsState.items.length - 1);
           } else if (productsState.pendingFocus === 'first') {
@@ -718,6 +726,7 @@ export const TV_CLIENT_JS = `(function () {
           productsState.pendingFocus = null;
           renderSubChips();
           renderBrandChips();
+          renderGammeChips();
           renderProducts();
           renderPagination();
         })
@@ -760,6 +769,11 @@ export const TV_CLIENT_JS = `(function () {
 
   function selectBrandChip(brandId) {
     productsState.brandId = brandId;
+    // Les gammes sont propres à une marque : on réinitialise le filtre
+    // gamme dès qu'on change de marque (sinon un gammeId d'une autre
+    // marque resterait actif silencieusement côté API).
+    productsState.gammeId = null;
+    productsState.gammeChipsFocusIndex = 0;
     productsState.page = 1;
     productsState.focusIndex = 0;
     fetchProducts();
@@ -810,6 +824,54 @@ export const TV_CLIENT_JS = `(function () {
 
   function selectSubChip(subcategoryId) {
     productsState.subcategoryId = subcategoryId;
+    productsState.page = 1;
+    productsState.focusIndex = 0;
+    fetchProducts();
+  }
+
+  // Ligne de puces "Gamme" — n'existe que si une marque est sélectionnée
+  // (une gamme appartient toujours à une marque, voir catalog.service.ts
+  // getCatalogProducts) et que cette marque a des gammes dans la catégorie.
+  function makeGammeChip(label, gammeId, index, imageUrl) {
+    var chip = document.createElement('div');
+    var classes = 'chip';
+    if (productsState.gammeId === gammeId) {
+      classes += ' active';
+    }
+    if (productsState.zone === 'gammeChips' && index === productsState.gammeChipsFocusIndex) {
+      classes += ' focused';
+    }
+    chip.className = classes;
+    if (imageUrl) {
+      var thumb = document.createElement('img');
+      thumb.className = 'chip-thumb';
+      setImageWithFallback(thumb, imageUrl);
+      chip.appendChild(thumb);
+    }
+    chip.appendChild(document.createTextNode(label));
+    chip.addEventListener('click', function () {
+      productsState.gammeChipsFocusIndex = index;
+      selectGammeChip(gammeId);
+    });
+    return chip;
+  }
+
+  function renderGammeChips() {
+    catGammeChips.innerHTML = '';
+    if (!productsState.gammes || productsState.gammes.length === 0) {
+      catGammeChips.className = 'empty';
+      return;
+    }
+    catGammeChips.className = '';
+    catGammeChips.appendChild(makeGammeChip('Toutes', null, 0, null));
+    for (var i = 0; i < productsState.gammes.length; i++) {
+      var g = productsState.gammes[i];
+      catGammeChips.appendChild(makeGammeChip(g.name, g.id, i + 1, g.imageUrl));
+    }
+  }
+
+  function selectGammeChip(gammeId) {
+    productsState.gammeId = gammeId;
     productsState.page = 1;
     productsState.focusIndex = 0;
     fetchProducts();
@@ -895,8 +957,9 @@ export const TV_CLIENT_JS = `(function () {
         renderBrandChips();
       }
     } else if (action === 'down') {
-      productsState.zone = 'grid';
+      productsState.zone = productsState.gammes.length > 0 ? 'gammeChips' : 'grid';
       renderBrandChips();
+      renderGammeChips();
       renderProducts();
     } else if (action === 'enter') {
       var brandId =
@@ -904,6 +967,35 @@ export const TV_CLIENT_JS = `(function () {
           ? null
           : productsState.brands[productsState.chipsFocusIndex - 1].id;
       selectBrandChip(brandId);
+    }
+  }
+
+  function handleGammeChipsKey(action) {
+    var total = productsState.gammes.length + 1;
+    if (action === 'left') {
+      if (productsState.gammeChipsFocusIndex > 0) {
+        productsState.gammeChipsFocusIndex--;
+        renderGammeChips();
+      }
+    } else if (action === 'right') {
+      if (productsState.gammeChipsFocusIndex < total - 1) {
+        productsState.gammeChipsFocusIndex++;
+        renderGammeChips();
+      }
+    } else if (action === 'up') {
+      productsState.zone = 'chips';
+      renderGammeChips();
+      renderBrandChips();
+    } else if (action === 'down') {
+      productsState.zone = 'grid';
+      renderGammeChips();
+      renderProducts();
+    } else if (action === 'enter') {
+      var gammeId =
+        productsState.gammeChipsFocusIndex === 0
+          ? null
+          : productsState.gammes[productsState.gammeChipsFocusIndex - 1].id;
+      selectGammeChip(gammeId);
     }
   }
 
@@ -937,7 +1029,10 @@ export const TV_CLIENT_JS = `(function () {
     var items = productsState.items;
     if (items.length === 0) {
       if (action === 'up') {
-        if (productsState.brands.length > 0) {
+        if (productsState.gammes.length > 0) {
+          productsState.zone = 'gammeChips';
+          renderGammeChips();
+        } else if (productsState.brands.length > 0) {
           productsState.zone = 'chips';
           renderBrandChips();
         } else if (productsState.subcategories && productsState.subcategories.length > 0) {
@@ -952,7 +1047,11 @@ export const TV_CLIENT_JS = `(function () {
       return;
     }
     if (action === 'up' && Math.floor(productsState.focusIndex / CATALOG_GRID_COLS) === 0) {
-      if (productsState.brands.length > 0) {
+      if (productsState.gammes.length > 0) {
+        productsState.zone = 'gammeChips';
+        renderGammeChips();
+        renderProducts();
+      } else if (productsState.brands.length > 0) {
         productsState.zone = 'chips';
         renderBrandChips();
         renderProducts();
@@ -989,6 +1088,8 @@ export const TV_CLIENT_JS = `(function () {
     }
     if (productsState.zone === 'chips') {
       handleChipsKey(action);
+    } else if (productsState.zone === 'gammeChips') {
+      handleGammeChipsKey(action);
     } else if (productsState.zone === 'subChips') {
       handleSubChipsKey(action);
     } else {
