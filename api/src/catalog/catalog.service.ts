@@ -161,8 +161,7 @@ export class CatalogService {
         id: product.id,
         name: product.name,
         brand: product.brand.name,
-        // Pas de champ prix dans le schéma actuel — le kiosque affiche un
-        // libellé de repli ("Prix en magasin"), voir tv-client.ts.
+        price: product.price,
         imageUrl: product.images[0] ? product.images[0].url : null,
       })),
       page,
@@ -193,6 +192,7 @@ export class CatalogService {
       name: product.name,
       reference: product.reference,
       description: product.description,
+      price: product.price,
       brand: {
         id: product.brand.id,
         name: product.brand.name,

@@ -484,6 +484,21 @@ export const TV_CLIENT_JS = `(function () {
     imgEl.src = url || PLACEHOLDER_IMG;
   }
 
+  // Le prix est optionnel côté schéma : libellé de repli si absent. Les
+  // Decimal Prisma arrivent en JSON sous forme de chaîne (ex. "49.99").
+  function formatPriceLabel(price) {
+    if (price === null || price === undefined || price === '') {
+      return 'Prix en magasin';
+    }
+    var num = Number(price);
+    if (!isFinite(num)) {
+      return 'Prix en magasin';
+    }
+    var rounded = Math.round(num);
+    var str = String(rounded).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return str + ' F CFA';
+  }
+
   /**
    * Déplace un focus dans une grille de \`total\` cases sur \`cols\` colonnes.
    * Renvoie le même index si le déplacement franchirait un bord de la
@@ -907,8 +922,7 @@ export const TV_CLIENT_JS = `(function () {
         brand.textContent = p.brand;
         var price = document.createElement('div');
         price.className = 'prod-price';
-        // Pas de champ prix dans le schéma actuel — libellé de repli.
-        price.textContent = 'Prix en magasin';
+        price.textContent = formatPriceLabel(p.price);
         info.appendChild(name);
         info.appendChild(brand);
         info.appendChild(price);
@@ -1135,8 +1149,7 @@ export const TV_CLIENT_JS = `(function () {
     catDetailName.textContent = p.name;
     catDetailCategory.textContent = p.category.name;
     catDetailRef.textContent = p.reference ? 'Réf. ' + p.reference : '';
-    // Pas de champ prix dans le schéma actuel — libellé de repli.
-    catDetailPrice.textContent = 'Prix en magasin';
+    catDetailPrice.textContent = formatPriceLabel(p.price);
     catDetailDesc.textContent = p.description || '';
 
     var images = p.images || [];
