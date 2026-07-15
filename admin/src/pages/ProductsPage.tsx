@@ -171,7 +171,7 @@ export function ProductsPage() {
 
       <form className="form-panel" onSubmit={handleSubmit}>
         <div className="form-row">
-          <label>
+          <label style={{ flex: '0 1 calc((100% - 36px) / 4)' }}>
             Référence
             <input
               value={reference}
