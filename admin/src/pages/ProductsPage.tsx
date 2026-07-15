@@ -10,6 +10,7 @@ import {
   uploadMedia,
 } from '../api/client';
 import type { Product } from '../api/types';
+import { ImportProductsDialog } from '../components/ImportProductsDialog';
 
 export function ProductsPage() {
   const queryClient = useQueryClient();
@@ -44,6 +45,7 @@ export function ProductsPage() {
     enabled: !!brandId,
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -160,7 +162,14 @@ export function ProductsPage() {
     <div>
       <div className="page-header">
         <h2>Produits</h2>
+        <button type="button" onClick={() => setImportOpen(true)}>
+          Importer depuis Excel
+        </button>
       </div>
+
+      {importOpen && (
+        <ImportProductsDialog onClose={() => setImportOpen(false)} />
+      )}
 
       {error && (
         <div className="error-banner">Impossible de charger les produits.</div>
