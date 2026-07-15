@@ -251,11 +251,12 @@ export const TV_PAGE_HTML = `<!doctype html>
   .cat-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: minmax(0, 240px);
+    grid-auto-rows: 240px;
     align-content: start;
     gap: 26px;
     flex: 1;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .category-card {
@@ -268,6 +269,7 @@ export const TV_PAGE_HTML = `<!doctype html>
     justify-content: center;
     padding: 20px;
     text-align: center;
+    overflow: hidden;
     transition: transform 0.15s ease, border-color 0.15s ease;
   }
   .category-card.empty {
@@ -300,6 +302,12 @@ export const TV_PAGE_HTML = `<!doctype html>
   .cat-name {
     font-size: 26px;
     font-weight: bold;
+    line-height: 1.2;
+    max-height: 63px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
   .cat-count {
     font-size: 22px;
