@@ -45,9 +45,11 @@ const NAME_HEADERS = ['nom', 'name'];
 const DESCRIPTION_HEADERS = ['description'];
 const PRICE_HEADERS = ['prix', 'price'];
 
-function parseWorkbook(buffer: ArrayBuffer): { rows: ParsedRow[]; error?: string } {
-  const workbook = XLSX.read(buffer, { type: 'array' });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+function parseSheet(workbook: XLSX.WorkBook, sheetName: string): { rows: ParsedRow[]; error?: string } {
+  const sheet = workbook.Sheets[sheetName];
+  if (!sheet) {
+    return { rows: [], error: 'Feuille introuvable dans le classeur.' };
+  }
   const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
     defval: '',
   });
@@ -106,6 +108,9 @@ export function ImportProductsDialog({ onClose }: { onClose: () => void }) {
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
+  const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
+  const [sheetNames, setSheetNames] = useState<string[]>([]);
+  const [selectedSheet, setSelectedSheet] = useState('');
   const [importing, setImporting] = useState(false);
   const [results, setResults] = useState<ImportResult[] | null>(null);
 
@@ -131,13 +136,31 @@ export function ImportProductsDialog({ onClose }: { onClose: () => void }) {
     setResults(null);
     try {
       const buffer = await file.arrayBuffer();
-      const { rows: parsed, error } = parseWorkbook(buffer);
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const firstSheet = wb.SheetNames[0];
+      setWorkbook(wb);
+      setSheetNames(wb.SheetNames);
+      setSelectedSheet(firstSheet);
+      const { rows: parsed, error } = parseSheet(wb, firstSheet);
       setRows(parsed);
       setParseError(error ?? null);
     } catch {
+      setWorkbook(null);
+      setSheetNames([]);
+      setSelectedSheet('');
       setRows([]);
       setParseError('Impossible de lire ce fichier. Formats acceptés : .xlsx, .xls, .csv.');
     }
+  }
+
+  function handleSheetChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const sheetName = e.target.value;
+    setSelectedSheet(sheetName);
+    setResults(null);
+    if (!workbook) return;
+    const { rows: parsed, error } = parseSheet(workbook, sheetName);
+    setRows(parsed);
+    setParseError(error ?? null);
   }
 
   async function handleImport() {
@@ -258,6 +281,18 @@ export function ImportProductsDialog({ onClose }: { onClose: () => void }) {
             Fichier Excel (.xlsx, .xls, .csv)
             <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} />
           </label>
+          {sheetNames.length > 1 && (
+            <label>
+              Feuille
+              <select value={selectedSheet} onChange={handleSheetChange}>
+                {sheetNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
 
         {parseError && <div className="error-banner">{parseError}</div>}
