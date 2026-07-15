@@ -26,6 +26,7 @@ export function ProductsPage() {
   const [name, setName] = useState('');
   const [reference, setReference] = useState('');
   const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
   const [brandId, setBrandId] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [subcategoryId, setSubcategoryId] = useState('');
@@ -82,6 +83,7 @@ export function ProductsPage() {
     setName('');
     setReference('');
     setDescription('');
+    setPrice('');
     setBrandId('');
     setCategoryId('');
     setSubcategoryId('');
@@ -94,6 +96,7 @@ export function ProductsPage() {
     setName(product.name);
     setReference(product.reference ?? '');
     setDescription(product.description ?? '');
+    setPrice(product.price != null ? String(product.price) : '');
     setBrandId(product.brandId);
     setCategoryId(product.categoryId);
     setSubcategoryId(product.subcategoryId ?? '');
@@ -106,6 +109,7 @@ export function ProductsPage() {
       name,
       reference: reference || undefined,
       description: description || undefined,
+      price: price !== '' ? Number(price) : undefined,
       brandId,
       categoryId,
       subcategoryId: subcategoryId || null,
@@ -126,6 +130,13 @@ export function ProductsPage() {
   }
   function categoryName(id: string) {
     return categories?.find((c) => c.id === id)?.name ?? '—';
+  }
+  function formatPrice(value?: number | string | null) {
+    if (value == null) return '—';
+    const n = Number(value);
+    return Number.isFinite(n)
+      ? n.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })
+      : '—';
   }
 
   const sortedProducts = [...(products ?? [])].sort((a, b) => {
@@ -257,6 +268,16 @@ export function ProductsPage() {
               rows={2}
             />
           </label>
+          <label>
+            Prix (F CFA)
+            <input
+              type="number"
+              step="1"
+              min="0"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+            />
+          </label>
         </div>
         <div className="actions">
           <button type="submit" className="primary" disabled={saving}>
@@ -280,6 +301,7 @@ export function ProductsPage() {
               <th>Nom</th>
               <th>Marque</th>
               <th>Catégorie</th>
+              <th>Prix</th>
               <th></th>
             </tr>
           </thead>
@@ -317,6 +339,7 @@ export function ProductsPage() {
                 <td>{product.name}</td>
                 <td className="muted">{brandName(product.brandId)}</td>
                 <td className="muted">{categoryName(product.categoryId)}</td>
+                <td>{formatPrice(product.price)}</td>
                 <td>
                   <div className="actions">
                     <button
@@ -347,7 +370,7 @@ export function ProductsPage() {
             ))}
             {sortedProducts.length === 0 && (
               <tr>
-                <td colSpan={5} className="muted">
+                <td colSpan={6} className="muted">
                   Aucun produit.
                 </td>
               </tr>

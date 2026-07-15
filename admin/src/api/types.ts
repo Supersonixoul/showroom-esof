@@ -63,6 +63,7 @@ export interface Product {
   name: string;
   reference?: string | null;
   description?: string | null;
+  price?: number | string | null;
   isActive: boolean;
   displayOrder: number;
   brandId: string;
