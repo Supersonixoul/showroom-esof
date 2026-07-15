@@ -1,11 +1,15 @@
 import { BadRequestException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { existsSync, mkdirSync } from 'fs';
-import { extname, join } from 'path';
+import { extname, join, resolve } from 'path';
 import { diskStorage } from 'multer';
 import type { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 
-export const UPLOADS_ROOT = 'uploads';
+// Chemin absolu, en dehors du dépôt git par défaut sur les postes de dev
+// (voir UPLOADS_ROOT dans .env) — évite de perdre les images uploadées
+// (marques/catégories/sous-catégories/gammes/produits) lors d'un transfert
+// du projet sur un autre PC, puisque `uploads/` est gitignore.
+export const UPLOADS_ROOT = resolve(process.env.UPLOADS_ROOT ?? 'uploads');
 
 export const ALLOWED_UPLOAD_RESOURCES = ['products', 'promo-videos', 'brands', 'categories', 'subcategories', 'gammes'] as const;
 export type UploadResource = (typeof ALLOWED_UPLOAD_RESOURCES)[number];

@@ -1,4 +1,3 @@
-import { join } from 'path';
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -12,6 +11,7 @@ import { SubcategoriesModule } from './subcategories/subcategories.module';
 import { GammesModule } from './gammes/gammes.module';
 import { ProductsModule } from './products/products.module';
 import { MediaModule } from './media/media.module';
+import { UPLOADS_ROOT } from './media/multer.config';
 import { VideosModule } from './videos/videos.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { TvModule } from './tv/tv.module';
@@ -24,7 +24,7 @@ import { QuotesModule } from './quotes/quotes.module';
   imports: [
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     ServeStaticModule.forRoot({
-      rootPath: join(process.cwd(), 'uploads'),
+      rootPath: UPLOADS_ROOT,
       serveRoot: '/uploads',
     }),
     PrismaModule,
