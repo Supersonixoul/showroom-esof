@@ -290,6 +290,13 @@ export const TV_PAGE_HTML = `<!doctype html>
     margin-bottom: 16px;
     color: #111;
   }
+  .cat-photo {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 16px;
+  }
   .cat-name {
     font-size: 26px;
     font-weight: bold;

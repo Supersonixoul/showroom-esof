@@ -620,10 +620,17 @@ export const TV_CLIENT_JS = `(function () {
         }
         card.className = classes;
 
-        var icon = document.createElement('div');
-        icon.className = 'cat-icon';
-        icon.style.background = colorForName(cat.name);
-        icon.textContent = cat.name.charAt(0).toUpperCase();
+        var icon;
+        if (cat.imageUrl) {
+          icon = document.createElement('img');
+          icon.className = 'cat-photo';
+          setImageWithFallback(icon, cat.imageUrl);
+        } else {
+          icon = document.createElement('div');
+          icon.className = 'cat-icon';
+          icon.style.background = colorForName(cat.name);
+          icon.textContent = cat.name.charAt(0).toUpperCase();
+        }
 
         var name = document.createElement('div');
         name.className = 'cat-name';
