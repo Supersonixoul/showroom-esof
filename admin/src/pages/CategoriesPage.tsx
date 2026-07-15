@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { categoriesApi } from '../api/client';
+import { categoriesApi, mediaUrl, uploadMedia } from '../api/client';
 import type { Category } from '../api/types';
 
 export function CategoriesPage() {
@@ -12,7 +12,10 @@ export function CategoriesPage() {
 
   const [name, setName] = useState('');
   const [parentId, setParentId] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['categories'] });
@@ -50,18 +53,40 @@ export function CategoriesPage() {
   function resetForm() {
     setName('');
     setParentId('');
+    setImageUrl('');
     setEditingId(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   function startEdit(category: Category) {
     setEditingId(category.id);
     setName(category.name);
     setParentId(category.parentId ?? '');
+    setImageUrl(category.imageUrl ?? '');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const result = await uploadMedia(file, 'categories');
+      setImageUrl(result.url);
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setUploading(false);
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const data = { name, parentId: parentId || undefined };
+    const data = {
+      name,
+      parentId: parentId || undefined,
+      imageUrl: imageUrl || undefined,
+    };
     if (editingId) {
       updateMutation.mutate({ id: editingId, data });
     } else {
@@ -149,10 +174,27 @@ export function CategoriesPage() {
                 ))}
             </select>
           </label>
+          <label>
+            Image (optionnel)
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+            />
+          </label>
         </div>
         <div className="actions">
-          <button type="submit" className="primary" disabled={saving}>
-            {editingId ? 'Enregistrer' : 'Ajouter'}
+          <button
+            type="submit"
+            className="primary"
+            disabled={saving || uploading}
+          >
+            {uploading
+              ? 'Envoi…'
+              : editingId
+                ? 'Enregistrer'
+                : 'Ajouter'}
           </button>
           {editingId && (
             <button type="button" onClick={resetForm}>
@@ -189,6 +231,7 @@ export function CategoriesPage() {
               <th>Ordre</th>
               <th>Nom</th>
               <th>Parente</th>
+              <th>Image</th>
               <th></th>
             </tr>
           </thead>
@@ -232,6 +275,17 @@ export function CategoriesPage() {
                 <td>{category.name}</td>
                 <td className="muted">{parentName(category.parentId)}</td>
                 <td>
+                  {category.imageUrl ? (
+                    <img
+                      className="thumb"
+                      src={mediaUrl(category.imageUrl)}
+                      alt={category.name}
+                    />
+                  ) : (
+                    <span className="muted">—</span>
+                  )}
+                </td>
+                <td>
                   <div className="actions">
                     <button onClick={() => startEdit(category)}>
                       Modifier
@@ -256,7 +310,7 @@ export function CategoriesPage() {
             ))}
             {displayedCategories.length === 0 && (
               <tr>
-                <td colSpan={4} className="muted">
+                <td colSpan={5} className="muted">
                   Aucune catégorie.
                 </td>
               </tr>

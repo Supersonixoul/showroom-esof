@@ -9,6 +9,7 @@ export interface Brand {
 export interface Category {
   id: string;
   name: string;
+  imageUrl?: string | null;
   displayOrder: number;
   parentId?: string | null;
   parent?: Category | null;

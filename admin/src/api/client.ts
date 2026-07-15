@@ -217,6 +217,7 @@ export type UploadResource =
   | 'products'
   | 'promo-videos'
   | 'brands'
+  | 'categories'
   | 'subcategories'
   | 'gammes';
 
