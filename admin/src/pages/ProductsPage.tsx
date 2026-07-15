@@ -172,19 +172,19 @@ export function ProductsPage() {
       <form className="form-panel" onSubmit={handleSubmit}>
         <div className="form-row">
           <label>
-            Nom
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </label>
-          <label>
             Référence
             <input
               value={reference}
               onChange={(e) => setReference(e.target.value)}
               maxLength={30}
+            />
+          </label>
+          <label>
+            Nom
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
             />
           </label>
         </div>
