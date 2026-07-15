@@ -25,6 +25,21 @@ function normalizeHeader(header: string): string {
     .toLowerCase();
 }
 
+/** Les fichiers Excel donnent déjà un `number` pour une cellule numérique.
+ * Les CSV, eux, donnent une chaîne — potentiellement au format français
+ * (virgule décimale, espace/espace insécable comme séparateur de milliers,
+ * ex. "1 234,50"), que `Number()` seul ne sait pas interpréter. */
+function parsePrice(raw: unknown): number | undefined {
+  if (raw === undefined || raw === '') return undefined;
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : undefined;
+  const cleaned = String(raw)
+    .trim()
+    .replace(/[\s\u00A0]/g, '')
+    .replace(',', '.');
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 const REFERENCE_HEADERS = ['reference', 'ref'];
 const NAME_HEADERS = ['nom', 'name'];
 const DESCRIPTION_HEADERS = ['description'];
@@ -62,11 +77,7 @@ function parseWorkbook(buffer: ArrayBuffer): { rows: ParsedRow[]; error?: string
       const name = String(entry[nameKey] ?? '').trim();
       const reference = referenceKey ? String(entry[referenceKey] ?? '').trim() : '';
       const description = descriptionKey ? String(entry[descriptionKey] ?? '').trim() : '';
-      const priceRaw = priceKey ? entry[priceKey] : undefined;
-      const price =
-        priceRaw !== undefined && priceRaw !== '' && !Number.isNaN(Number(priceRaw))
-          ? Number(priceRaw)
-          : undefined;
+      const price = priceKey ? parsePrice(entry[priceKey]) : undefined;
       return {
         name,
         reference: reference || undefined,
