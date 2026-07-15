@@ -108,10 +108,18 @@ export class ProductsService {
   }
 
   /** Une gamme est toujours facultative, mais si présente elle doit
-   * appartenir à la marque du produit. */
-  private async validateGamme(brandId: string, gammeId?: string | null) {
+   * appartenir à la marque du produit (qui doit alors être renseignée). */
+  private async validateGamme(
+    brandId: string | null | undefined,
+    gammeId?: string | null,
+  ) {
     if (!gammeId) {
       return;
+    }
+    if (!brandId) {
+      throw new BadRequestException(
+        'Une gamme ne peut être choisie sans marque',
+      );
     }
     const gamme = await this.prisma.gamme.findUnique({
       where: { id: gammeId },

@@ -21,7 +21,7 @@ class DatabaseService {
     final path = join(dbPath, 'showroom_mobile.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE IF NOT EXISTS brands (
@@ -45,7 +45,7 @@ class DatabaseService {
             description TEXT,
             price REAL,
             isActive INTEGER NOT NULL,
-            brandId TEXT NOT NULL,
+            brandId TEXT,
             categoryId TEXT NOT NULL
           )
         ''');
@@ -75,6 +75,27 @@ class DatabaseService {
         }
         if (oldVersion < 3) {
           await db.execute('ALTER TABLE products ADD COLUMN price REAL');
+        }
+        if (oldVersion < 4) {
+          // SQLite ne permet pas de retirer une contrainte NOT NULL par
+          // ALTER TABLE : la table est recréée (brandId devient nullable),
+          // et le curseur de sync est réinitialisé pour forcer un
+          // rechargement complet via /catalog/full au prochain refresh.
+          await db.execute('DROP TABLE IF EXISTS products');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS products (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              reference TEXT,
+              description TEXT,
+              price REAL,
+              isActive INTEGER NOT NULL,
+              brandId TEXT,
+              categoryId TEXT NOT NULL
+            )
+          ''');
+          await db.delete('sync_meta',
+              where: 'key = ?', whereArgs: ['catalogSyncedAt']);
         }
       },
     );

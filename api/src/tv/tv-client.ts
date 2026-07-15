@@ -919,7 +919,7 @@ export const TV_CLIENT_JS = `(function () {
         name.textContent = p.name;
         var brand = document.createElement('div');
         brand.className = 'prod-brand';
-        brand.textContent = p.brand;
+        brand.textContent = p.brand || '';
         var price = document.createElement('div');
         price.className = 'prod-price';
         price.textContent = formatPriceLabel(p.price);
@@ -1145,7 +1145,7 @@ export const TV_CLIENT_JS = `(function () {
   function renderDetail() {
     var p = detailState.product;
     catTitle.textContent = p.name;
-    catDetailBrand.textContent = p.brand.name;
+    catDetailBrand.textContent = p.brand ? p.brand.name : '';
     catDetailName.textContent = p.name;
     catDetailCategory.textContent = p.category.name;
     catDetailRef.textContent = p.reference ? 'Réf. ' + p.reference : '';

@@ -66,7 +66,7 @@ export interface Product {
   price?: number | string | null;
   isActive: boolean;
   displayOrder: number;
-  brandId: string;
+  brandId?: string | null;
   categoryId: string;
   subcategoryId?: string | null;
   gammeId?: string | null;

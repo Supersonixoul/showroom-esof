@@ -99,8 +99,8 @@ model Product {
   isActive     Boolean  @default(true) @map("is_active")
   displayOrder Int      @default(0) @map("display_order")
 
-  brandId    String   @map("brand_id") @db.Uuid
-  brand      Brand    @relation(fields: [brandId], references: [id])
+  brandId    String?  @map("brand_id") @db.Uuid
+  brand      Brand?   @relation(fields: [brandId], references: [id])
   categoryId String   @map("category_id") @db.Uuid
   category   Category @relation(fields: [categoryId], references: [id])
 

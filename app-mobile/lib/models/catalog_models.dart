@@ -116,7 +116,7 @@ class Product {
   final String? description;
   final double? price;
   final bool isActive;
-  final String brandId;
+  final String? brandId;
   final String categoryId;
   final List<ProductSpec> specs;
   final List<ProductImage> images;
@@ -128,7 +128,7 @@ class Product {
     this.description,
     this.price,
     required this.isActive,
-    required this.brandId,
+    this.brandId,
     required this.categoryId,
     this.specs = const [],
     this.images = const [],
@@ -152,7 +152,7 @@ class Product {
           ? double.tryParse(json['price'].toString())
           : null,
       isActive: json['isActive'] as bool,
-      brandId: json['brandId'] as String,
+      brandId: json['brandId'] as String?,
       categoryId: json['categoryId'] as String,
       specs: specs,
       images: images,
@@ -171,7 +171,7 @@ class Product {
       description: map['description'] as String?,
       price: (map['price'] as num?)?.toDouble(),
       isActive: (map['isActive'] as int) == 1,
-      brandId: map['brandId'] as String,
+      brandId: map['brandId'] as String?,
       categoryId: map['categoryId'] as String,
       specs: specs,
       images: images,

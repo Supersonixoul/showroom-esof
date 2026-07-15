@@ -130,7 +130,7 @@ export function ImportProductsDialog({ onClose }: { onClose: () => void }) {
   }
 
   async function handleImport() {
-    if (!brandId || !categoryId || rows.length === 0) return;
+    if (!categoryId || rows.length === 0) return;
     setImporting(true);
     const outcome: ImportResult[] = [];
     for (const row of rows) {
@@ -140,7 +140,7 @@ export function ImportProductsDialog({ onClose }: { onClose: () => void }) {
           reference: row.reference,
           description: row.description,
           price: row.price,
-          brandId,
+          brandId: brandId || null,
           categoryId,
           subcategoryId: subcategoryId || null,
           gammeId: gammeId || null,
@@ -155,7 +155,7 @@ export function ImportProductsDialog({ onClose }: { onClose: () => void }) {
     queryClient.invalidateQueries({ queryKey: ['products'] });
   }
 
-  const canImport = !!brandId && !!categoryId && rows.length > 0 && !importing;
+  const canImport = !!categoryId && rows.length > 0 && !importing;
   const successCount = results?.filter((r) => r.status === 'ok').length ?? 0;
   const errorResults = results?.filter((r) => r.status === 'error') ?? [];
 
@@ -172,23 +172,21 @@ export function ImportProductsDialog({ onClose }: { onClose: () => void }) {
         <p className="muted">
           Le fichier doit comporter au minimum les colonnes <strong>Référence</strong> et{' '}
           <strong>Nom</strong> (colonnes optionnelles reconnues : Description, Prix). Chaque
-          produit importé sera rattaché à la marque et à la catégorie choisies ci-dessous.
+          produit importé sera rattaché à la catégorie choisie ci-dessous (obligatoire) et,
+          le cas échéant, à la marque choisie (optionnelle).
         </p>
 
         <div className="form-row">
           <label>
-            Marque
+            Marque (optionnel)
             <select
               value={brandId}
               onChange={(e) => {
                 setBrandId(e.target.value);
                 setGammeId('');
               }}
-              required
             >
-              <option value="" disabled>
-                Choisir…
-              </option>
+              <option value="">Aucune</option>
               {brands?.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}

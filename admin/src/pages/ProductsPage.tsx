@@ -99,7 +99,7 @@ export function ProductsPage() {
     setReference(product.reference ?? '');
     setDescription(product.description ?? '');
     setPrice(product.price != null ? String(product.price) : '');
-    setBrandId(product.brandId);
+    setBrandId(product.brandId ?? '');
     setCategoryId(product.categoryId);
     setSubcategoryId(product.subcategoryId ?? '');
     setGammeId(product.gammeId ?? '');
@@ -112,7 +112,7 @@ export function ProductsPage() {
       reference: reference || undefined,
       description: description || undefined,
       price: price !== '' ? Number(price) : undefined,
-      brandId,
+      brandId: brandId || null,
       categoryId,
       subcategoryId: subcategoryId || null,
       gammeId: gammeId || null,
@@ -127,7 +127,8 @@ export function ProductsPage() {
   const saving = createMutation.isPending || updateMutation.isPending;
   const mutationError = createMutation.error || updateMutation.error;
 
-  function brandName(id: string) {
+  function brandName(id?: string | null) {
+    if (!id) return '—';
     return brands?.find((b) => b.id === id)?.name ?? '—';
   }
   function categoryName(id: string) {
@@ -199,18 +200,15 @@ export function ProductsPage() {
         </div>
         <div className="form-row">
           <label>
-            Marque
+            Marque (optionnel)
             <select
               value={brandId}
               onChange={(e) => {
                 setBrandId(e.target.value);
                 setGammeId('');
               }}
-              required
             >
-              <option value="" disabled>
-                Choisir…
-              </option>
+              <option value="">Aucune</option>
               {brands?.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}

@@ -144,7 +144,9 @@ export class CatalogService {
 
     const brandById = new Map<string, { id: string; name: string }>();
     for (const row of brandRows) {
-      brandById.set(row.brand.id, row.brand);
+      if (row.brand) {
+        brandById.set(row.brand.id, row.brand);
+      }
     }
     const brands = Array.from(brandById.values()).sort((a, b) => a.name.localeCompare(b.name));
 
@@ -160,7 +162,7 @@ export class CatalogService {
       items: products.map((product) => ({
         id: product.id,
         name: product.name,
-        brand: product.brand.name,
+        brand: product.brand ? product.brand.name : null,
         price: product.price,
         imageUrl: product.images[0] ? product.images[0].url : null,
       })),
@@ -193,11 +195,13 @@ export class CatalogService {
       reference: product.reference,
       description: product.description,
       price: product.price,
-      brand: {
-        id: product.brand.id,
-        name: product.brand.name,
-        logoUrl: product.brand.logoUrl,
-      },
+      brand: product.brand
+        ? {
+            id: product.brand.id,
+            name: product.brand.name,
+            logoUrl: product.brand.logoUrl,
+          }
+        : null,
       category: { id: product.category.id, name: product.category.name },
       gamme: product.gamme ? { id: product.gamme.id, name: product.gamme.name } : null,
       images: product.images.map((image) => image.url),

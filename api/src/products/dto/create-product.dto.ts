@@ -32,8 +32,9 @@ export class CreateProductDto {
   @IsBoolean()
   isActive?: boolean;
 
+  @IsOptional()
   @IsUUID()
-  brandId: string;
+  brandId?: string | null;
 
   @IsUUID()
   categoryId: string;
