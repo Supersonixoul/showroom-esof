@@ -18,6 +18,11 @@
   box-sizing: border-box;
 }
 
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   font-size: 16px;
@@ -111,7 +116,7 @@ tr:last-child td {
 
 .app-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 .sidebar {
@@ -122,6 +127,7 @@ tr:last-child td {
   display: flex;
   flex-direction: column;
   padding: 20px;
+  overflow-y: auto;
 }
 
 .logo {
@@ -183,6 +189,7 @@ tr:last-child td {
   flex: 1;
   padding: 32px;
   max-width: 1100px;
+  overflow-y: auto;
 }
 
 .page-header {
@@ -190,6 +197,14 @@ tr:last-child td {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
+}
+
+.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  padding-bottom: 4px;
 }
 
 .form-panel {

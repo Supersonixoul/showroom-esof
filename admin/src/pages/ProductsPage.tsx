@@ -195,25 +195,26 @@ export function ProductsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h2>Produits</h2>
-        <button type="button" onClick={() => setImportOpen(true)}>
-          Importer depuis Excel
-        </button>
-      </div>
+      <div className="sticky-top">
+        <div className="page-header">
+          <h2>Produits</h2>
+          <button type="button" onClick={() => setImportOpen(true)}>
+            Importer depuis Excel
+          </button>
+        </div>
 
-      {importOpen && (
-        <ImportProductsDialog onClose={() => setImportOpen(false)} />
-      )}
+        {importOpen && (
+          <ImportProductsDialog onClose={() => setImportOpen(false)} />
+        )}
 
-      {error && (
-        <div className="error-banner">Impossible de charger les produits.</div>
-      )}
-      {mutationError && (
-        <div className="error-banner">{(mutationError as Error).message}</div>
-      )}
+        {error && (
+          <div className="error-banner">Impossible de charger les produits.</div>
+        )}
+        {mutationError && (
+          <div className="error-banner">{(mutationError as Error).message}</div>
+        )}
 
-      <form className="form-panel" onSubmit={handleSubmit}>
+        <form className="form-panel" onSubmit={handleSubmit}>
         <div className="form-row">
           <label style={{ flex: '0 1 calc((100% - 36px) / 4)' }}>
             Référence
@@ -361,7 +362,8 @@ export function ProductsPage() {
           )}
           {uploadingImage && <span className="muted">Envoi de l'image…</span>}
         </div>
-      </form>
+        </form>
+      </div>
 
       {isLoading ? (
         <p className="muted">Chargement…</p>
