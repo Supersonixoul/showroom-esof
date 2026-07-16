@@ -340,7 +340,7 @@ export const TV_PAGE_HTML = `<!doctype html>
   .prod-photo-wrap img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
   }
   .prod-info {
     padding: 14px 18px 18px;
