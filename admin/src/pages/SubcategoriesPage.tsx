@@ -181,7 +181,8 @@ export function SubcategoriesPage() {
   }
 
   return (
-    <div>
+    <div className="page-fill">
+      <div>
       <div className="page-header">
         <h2>Sous-Catégories</h2>
       </div>
@@ -296,7 +297,9 @@ export function SubcategoriesPage() {
           </div>
         </form>
       )}
+      </div>
 
+      <div className="scroll-area">
       {isLoading ? (
         <p className="muted">Chargement…</p>
       ) : (
@@ -397,6 +400,7 @@ export function SubcategoriesPage() {
           </tbody>
         </table>
       )}
+      </div>
     </div>
   );
 }

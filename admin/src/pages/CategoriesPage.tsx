@@ -133,7 +133,8 @@ export function CategoriesPage() {
   }
 
   return (
-    <div>
+    <div className="page-fill">
+      <div>
       <div className="page-header">
         <h2>Catégories</h2>
       </div>
@@ -221,7 +222,9 @@ export function CategoriesPage() {
           </select>
         </label>
       </div>
+      </div>
 
+      <div className="scroll-area">
       {isLoading ? (
         <p className="muted">Chargement…</p>
       ) : (
@@ -318,6 +321,7 @@ export function CategoriesPage() {
           </tbody>
         </table>
       )}
+      </div>
     </div>
   );
 }
