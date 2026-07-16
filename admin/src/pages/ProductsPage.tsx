@@ -194,8 +194,8 @@ export function ProductsPage() {
   }
 
   return (
-    <div>
-      <div className="sticky-top">
+    <div className="page-fill">
+      <div>
         <div className="page-header">
           <h2>Produits</h2>
           <button type="button" onClick={() => setImportOpen(true)}>
@@ -365,6 +365,7 @@ export function ProductsPage() {
         </form>
       </div>
 
+      <div className="scroll-area">
       {isLoading ? (
         <p className="muted">Chargement…</p>
       ) : (
@@ -456,6 +457,7 @@ export function ProductsPage() {
       )}
 
       {selectedId && <ProductDetail productId={selectedId} />}
+      </div>
     </div>
   );
 }

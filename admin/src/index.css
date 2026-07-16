@@ -199,12 +199,17 @@ tr:last-child td {
   margin-bottom: 20px;
 }
 
-.sticky-top {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background: var(--bg);
-  padding-bottom: 4px;
+.page-fill {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .form-panel {
