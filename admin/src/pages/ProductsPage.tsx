@@ -33,6 +33,10 @@ export function ProductsPage() {
   const [subcategoryId, setSubcategoryId] = useState('');
   const [gammeId, setGammeId] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const { data: subcategories } = useQuery({
     queryKey: ['subcategories', categoryId],
@@ -91,6 +95,9 @@ export function ProductsPage() {
     setSubcategoryId('');
     setGammeId('');
     setEditingId(null);
+    setImageFile(null);
+    setImagePreview(null);
+    if (imageInputRef.current) imageInputRef.current.value = '';
   }
 
   function startEdit(product: Product) {
@@ -103,9 +110,22 @@ export function ProductsPage() {
     setCategoryId(product.categoryId);
     setSubcategoryId(product.subcategoryId ?? '');
     setGammeId(product.gammeId ?? '');
+    setImageFile(null);
+    setImagePreview(
+      product.images && product.images.length > 0
+        ? mediaUrl(product.images[0].url)
+        : null,
+    );
+    if (imageInputRef.current) imageInputRef.current.value = '';
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
+    setImagePreview(file ? URL.createObjectURL(file) : null);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const data = {
       name,
@@ -117,10 +137,24 @@ export function ProductsPage() {
       subcategoryId: subcategoryId || null,
       gammeId: gammeId || null,
     };
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, data });
-    } else {
-      createMutation.mutate(data);
+    const product = editingId
+      ? await updateMutation.mutateAsync({ id: editingId, data })
+      : await createMutation.mutateAsync(data);
+
+    if (imageFile) {
+      setUploadingImage(true);
+      try {
+        const result = await uploadMedia(imageFile, 'products');
+        await productsApi.addImage(product.id, {
+          url: result.url,
+          position: product.images?.length ?? 0,
+        });
+        invalidate();
+      } catch (err) {
+        alert((err as Error).message);
+      } finally {
+        setUploadingImage(false);
+      }
     }
   }
 
@@ -287,8 +321,37 @@ export function ProductsPage() {
             />
           </label>
         </div>
+        <div className="form-row">
+          <label>
+            Image
+            <div className="actions" style={{ alignItems: 'center' }}>
+              {imagePreview && (
+                <img
+                  className="thumb"
+                  src={imagePreview}
+                  alt=""
+                  style={{ width: 60, height: 60 }}
+                />
+              )}
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+              >
+                Choisir une image
+              </button>
+              {imageFile && <span className="muted">{imageFile.name}</span>}
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                style={{ display: 'none' }}
+              />
+            </div>
+          </label>
+        </div>
         <div className="actions">
-          <button type="submit" className="primary" disabled={saving}>
+          <button type="submit" className="primary" disabled={saving || uploadingImage}>
             {editingId ? 'Enregistrer' : 'Ajouter'}
           </button>
           {editingId && (
@@ -296,6 +359,7 @@ export function ProductsPage() {
               Annuler
             </button>
           )}
+          {uploadingImage && <span className="muted">Envoi de l'image…</span>}
         </div>
       </form>
 
