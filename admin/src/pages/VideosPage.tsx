@@ -117,7 +117,8 @@ export function VideosPage() {
   const mutationError = createMutation.error || updateMutation.error;
 
   return (
-    <div>
+    <div className="page-fill">
+      <div>
       <div className="page-header">
         <h2>Vidéos promotionnelles</h2>
       </div>
@@ -185,7 +186,9 @@ export function VideosPage() {
           )}
         </div>
       </form>
+      </div>
 
+      <div className="scroll-area">
       {isLoading ? (
         <p className="muted">Chargement…</p>
       ) : (
@@ -283,6 +286,7 @@ export function VideosPage() {
           </tbody>
         </table>
       )}
+      </div>
     </div>
   );
 }

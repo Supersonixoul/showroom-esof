@@ -170,7 +170,8 @@ export function GammesPage() {
   }
 
   return (
-    <div>
+    <div className="page-fill">
+      <div>
       <div className="page-header">
         <h2>Gammes</h2>
       </div>
@@ -283,7 +284,9 @@ export function GammesPage() {
           </div>
         </form>
       )}
+      </div>
 
+      <div className="scroll-area">
       {isLoading ? (
         <p className="muted">Chargement…</p>
       ) : (
@@ -372,6 +375,7 @@ export function GammesPage() {
           </tbody>
         </table>
       )}
+      </div>
     </div>
   );
 }
