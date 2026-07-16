@@ -370,6 +370,7 @@ export function ProductsPage() {
           <thead>
             <tr>
               <th>Ordre</th>
+              <th>Référence</th>
               <th>Nom</th>
               <th>Marque</th>
               <th>Catégorie</th>
@@ -408,6 +409,7 @@ export function ProductsPage() {
                     </button>
                   </div>
                 </td>
+                <td className="muted">{product.reference || '—'}</td>
                 <td>{product.name}</td>
                 <td className="muted">{brandName(product.brandId)}</td>
                 <td className="muted">{categoryName(product.categoryId)}</td>
