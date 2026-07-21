@@ -436,14 +436,15 @@ export const TV_PAGE_HTML = `<!doctype html>
     margin-bottom: 0;
   }
   .chip {
-    background: rgba(255, 255, 255, 0.1);
-    border: 3px solid rgba(255, 255, 255, 0.3);
+    background: #f4f4f5;
+    border: 3px solid transparent;
     border-radius: 999px;
     padding: 10px 24px;
     font-size: 24px;
-    color: #fff;
+    color: #1a1a1a;
     display: flex;
     align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   }
   .chip-thumb {
     width: 32px;
@@ -453,9 +454,9 @@ export const TV_PAGE_HTML = `<!doctype html>
     margin-right: 12px;
   }
   .chip.active {
-    background: rgba(255, 204, 0, 0.22);
-    border-color: #ffcc00;
-    color: #ffcc00;
+    background: #fff3cd;
+    border-color: #e0a800;
+    color: #7a5c00;
   }
   .chip.focused {
     box-shadow: 0 0 0 4px rgba(255, 204, 0, 0.55);
