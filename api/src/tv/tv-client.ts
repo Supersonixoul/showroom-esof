@@ -496,7 +496,7 @@ export const TV_CLIENT_JS = `(function () {
     }
     var rounded = Math.round(num);
     var str = String(rounded).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-    return str + ' F CFA';
+    return str + ' F';
   }
 
   /**
@@ -909,7 +909,8 @@ export const TV_CLIENT_JS = `(function () {
         var photoWrap = document.createElement('div');
         photoWrap.className = 'prod-photo-wrap';
         var img = document.createElement('img');
-        setImageWithFallback(img, p.imageUrl);
+        // Variante "full" (1600px) systématique côté TV : écran 1080p, rendu net.
+        setImageWithFallback(img, p.imageVariants ? p.imageVariants.full : null);
         photoWrap.appendChild(img);
 
         var info = document.createElement('div');
@@ -1154,7 +1155,8 @@ export const TV_CLIENT_JS = `(function () {
 
     var images = p.images || [];
     detailState.imageCount = images.length;
-    setImageWithFallback(catDetailPhoto, images[detailState.imageIndex]);
+    var currentImage = images[detailState.imageIndex];
+    setImageWithFallback(catDetailPhoto, currentImage ? currentImage.full : null);
 
     catDetailDots.innerHTML = '';
     if (images.length > 1) {

@@ -10,6 +10,7 @@ import { FindProductsQueryDto } from './dto/find-products-query.dto';
 import { CreateProductSpecDto } from './dto/create-product-spec.dto';
 import { CreateProductImageDto } from './dto/create-product-image.dto';
 import { MoveProductDto } from './dto/move-product.dto';
+import { buildImageVariants } from './image-variants.util';
 
 @Injectable()
 export class ProductsService {
@@ -28,17 +29,30 @@ export class ProductsService {
     return this.prisma.product.create({ data: { ...dto, displayOrder } });
   }
 
-  findAll(query: FindProductsQueryDto) {
-    return this.prisma.product.findMany({
+  async findAll(query: FindProductsQueryDto) {
+    const products = await this.prisma.product.findMany({
       where: {
         brandId: query.brandId,
         categoryId: query.categoryId,
         subcategoryId: query.subcategoryId,
         gammeId: query.gammeId,
       },
-      include: { brand: true, category: true, subcategory: true, gamme: true },
+      include: {
+        brand: true,
+        category: true,
+        subcategory: true,
+        gamme: true,
+        images: { orderBy: { position: 'asc' }, take: 1 },
+      },
       orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
     });
+    return products.map((product) => ({
+      ...product,
+      images: product.images.map((image) => ({
+        ...image,
+        imageVariants: buildImageVariants(image.url),
+      })),
+    }));
   }
 
   async findOne(id: string) {
@@ -56,7 +70,13 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException(`Produit ${id} introuvable`);
     }
-    return product;
+    return {
+      ...product,
+      images: product.images.map((image) => ({
+        ...image,
+        imageVariants: buildImageVariants(image.url),
+      })),
+    };
   }
 
   async update(id: string, dto: UpdateProductDto) {
@@ -203,7 +223,7 @@ export class ProductsService {
       data: { ...dto, productId },
     });
     await this.touch(productId);
-    return image;
+    return { ...image, imageVariants: buildImageVariants(image.url) };
   }
 
   async removeImage(productId: string, imageId: string) {
@@ -241,7 +261,7 @@ export class ProductsService {
     });
 
     if (!neighbor) {
-      return image;
+      return { ...image, imageVariants: buildImageVariants(image.url) };
     }
 
     const [, updated] = await this.prisma.$transaction([
@@ -256,7 +276,7 @@ export class ProductsService {
     ]);
     await this.touch(productId);
 
-    return updated;
+    return { ...updated, imageVariants: buildImageVariants(updated.url) };
   }
 
   /** Force la mise à jour de `updatedAt` du produit (utilisé pour la sync différentielle). */

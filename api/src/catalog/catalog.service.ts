@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FindCatalogProductsQueryDto } from './dto/find-catalog-products-query.dto';
+import { buildImageVariants } from '../products/image-variants.util';
 
 @Injectable()
 export class CatalogService {
@@ -164,7 +165,12 @@ export class CatalogService {
         name: product.name,
         brand: product.brand ? product.brand.name : null,
         price: product.price,
-        imageUrl: product.images[0] ? product.images[0].url : null,
+        // Kiosque TV (1080p) : on expose les 3 variantes, le client TV
+        // utilise systématiquement "full" pour un rendu net (voir mission
+        // qualité d'affichage catalogue produits).
+        imageVariants: product.images[0]
+          ? buildImageVariants(product.images[0].url)
+          : null,
       })),
       page,
       pageSize,
@@ -204,7 +210,7 @@ export class CatalogService {
         : null,
       category: { id: product.category.id, name: product.category.name },
       gamme: product.gamme ? { id: product.gamme.id, name: product.gamme.name } : null,
-      images: product.images.map((image) => image.url),
+      images: product.images.map((image) => buildImageVariants(image.url)),
     };
   }
 }

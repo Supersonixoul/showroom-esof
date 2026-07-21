@@ -51,11 +51,19 @@ export interface ProductSpec {
   productId: string;
 }
 
+export interface ImageVariants {
+  thumb: string;
+  medium: string;
+  full: string;
+  original: string;
+}
+
 export interface ProductImage {
   id: string;
   url: string;
   position: number;
   productId: string;
+  imageVariants?: ImageVariants;
 }
 
 export interface Product {

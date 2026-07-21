@@ -11,6 +11,7 @@ import {
 } from '../api/client';
 import type { Product } from '../api/types';
 import { ImportProductsDialog } from '../components/ImportProductsDialog';
+import { formatPrix } from '../utils/formatPrix';
 
 export function ProductsPage() {
   const queryClient = useQueryClient();
@@ -168,13 +169,6 @@ export function ProductsPage() {
   function categoryName(id: string) {
     return categories?.find((c) => c.id === id)?.name ?? '—';
   }
-  function formatPrice(value?: number | string | null) {
-    if (value == null) return '—';
-    const n = Number(value);
-    return Number.isFinite(n)
-      ? n.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })
-      : '—';
-  }
 
   const sortedProducts = [...(products ?? [])].sort((a, b) => {
     if (a.categoryId !== b.categoryId) {
@@ -312,7 +306,7 @@ export function ProductsPage() {
             />
           </label>
           <label>
-            Prix (F CFA)
+            Prix (F)
             <input
               type="number"
               step="1"
@@ -327,12 +321,9 @@ export function ProductsPage() {
             Image
             <div className="actions" style={{ alignItems: 'center' }}>
               {imagePreview && (
-                <img
-                  className="thumb"
-                  src={imagePreview}
-                  alt=""
-                  style={{ width: 60, height: 60 }}
-                />
+                <div className="product-photo-frame" style={{ width: 60, height: 60 }}>
+                  <img src={imagePreview} alt="" loading="lazy" />
+                </div>
               )}
               <button
                 type="button"
@@ -373,6 +364,7 @@ export function ProductsPage() {
           <thead>
             <tr>
               <th>Ordre</th>
+              <th>Photo</th>
               <th>Référence</th>
               <th>Nom</th>
               <th>Marque</th>
@@ -412,11 +404,26 @@ export function ProductsPage() {
                     </button>
                   </div>
                 </td>
+                <td>
+                  <div className="product-photo-frame" style={{ width: 48, height: 48 }}>
+                    {product.images && product.images.length > 0 ? (
+                      <img
+                        src={mediaUrl(
+                          product.images[0].imageVariants?.thumb ?? product.images[0].url,
+                        )}
+                        alt=""
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className="muted">—</span>
+                    )}
+                  </div>
+                </td>
                 <td className="muted">{product.reference || '—'}</td>
                 <td>{product.name}</td>
                 <td className="muted">{brandName(product.brandId)}</td>
                 <td className="muted">{categoryName(product.categoryId)}</td>
-                <td>{formatPrice(product.price)}</td>
+                <td>{formatPrix(product.price)}</td>
                 <td>
                   <div className="actions">
                     <button
@@ -447,7 +454,7 @@ export function ProductsPage() {
             ))}
             {sortedProducts.length === 0 && (
               <tr>
-                <td colSpan={6} className="muted">
+                <td colSpan={7} className="muted">
                   Aucun produit.
                 </td>
               </tr>
@@ -598,10 +605,32 @@ function ProductDetail({ productId }: { productId: string }) {
       </form>
 
       <h4 style={{ marginTop: 20 }}>Images</h4>
+      {product.images && product.images.length > 0 && (
+        <div
+          className="product-photo-main"
+          style={{ width: '100%', maxWidth: 480, height: 320, marginBottom: 12 }}
+        >
+          <img
+            src={mediaUrl(
+              product.images[0].imageVariants?.medium ?? product.images[0].url,
+            )}
+            srcSet={
+              product.images[0].imageVariants
+                ? `${mediaUrl(product.images[0].imageVariants.medium)} 800w, ${mediaUrl(product.images[0].imageVariants.full)} 1600w`
+                : undefined
+            }
+            sizes="(max-width: 640px) 100vw, 480px"
+            alt=""
+            loading="lazy"
+          />
+        </div>
+      )}
       <div className="form-row">
         {product.images?.map((image, index) => (
           <div key={image.id} style={{ textAlign: 'center' }}>
-            <img className="thumb" src={mediaUrl(image.url)} alt="" style={{ width: 80, height: 80 }} />
+            <div className="product-photo-frame" style={{ width: 80, height: 80, margin: '0 auto' }}>
+              <img src={mediaUrl(image.imageVariants?.thumb ?? image.url)} alt="" loading="lazy" />
+            </div>
             <div className="reorder-buttons" style={{ justifyContent: 'center' }}>
               <button
                 type="button"
