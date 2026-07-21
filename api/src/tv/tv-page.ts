@@ -291,7 +291,7 @@ export const TV_PAGE_HTML = `<!doctype html>
   }
 
   .category-card {
-    background: rgba(255, 255, 255, 0.08);
+    background: #f4f4f5;
     border: 4px solid transparent;
     border-radius: 18px;
     display: flex;
@@ -302,6 +302,12 @@ export const TV_PAGE_HTML = `<!doctype html>
     text-align: center;
     overflow: hidden;
     transition: transform 0.15s ease, border-color 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    /* Carte volontairement un peu moins large que sa cellule de grille
+       (même colonnage que la grille produits) pour ne pas paraître trop
+       massive avec ce fond clair. */
+    width: 85%;
+    margin: 0 auto;
   }
   .category-card.empty {
     opacity: 0.5;
@@ -340,10 +346,11 @@ export const TV_PAGE_HTML = `<!doctype html>
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    color: #1a1a1a;
   }
   .cat-count {
     font-size: 22px;
-    opacity: 0.7;
+    color: #6b6375;
     margin-top: 6px;
   }
 
