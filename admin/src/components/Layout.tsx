@@ -17,7 +17,13 @@ export function Layout() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <h1 className="logo">Showroom ESOF</h1>
+        <div className="sidebar-header">
+          <h1 className="logo">Showroom ESOF</h1>
+          <label className="nav-toggle-btn" htmlFor="nav-toggle">
+            ☰
+          </label>
+        </div>
+        <input type="checkbox" id="nav-toggle" className="nav-toggle-checkbox" />
         <nav>
           {links.map((link) => (
             <NavLink
