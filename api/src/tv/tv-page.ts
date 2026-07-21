@@ -292,6 +292,7 @@ export const TV_PAGE_HTML = `<!doctype html>
     border-color: #ffcc00;
     transform: scale(1.06);
     box-shadow: 0 0 0 6px rgba(255, 204, 0, 0.35), 0 14px 26px rgba(0, 0, 0, 0.55);
+    z-index: 2;
   }
   .cat-icon {
     width: 84px;
@@ -342,6 +343,7 @@ export const TV_PAGE_HTML = `<!doctype html>
     border-color: #ffcc00;
     transform: scale(1.05);
     box-shadow: 0 0 0 6px rgba(255, 204, 0, 0.35), 0 14px 26px rgba(0, 0, 0, 0.55);
+    z-index: 2;
   }
   /* Zone image carrée 1:1, fond blanc pur : rendu "fiche catalogue"
      (Schneider/Legrand) au lieu de l'ancien fond noir "vignette vidéo". */
