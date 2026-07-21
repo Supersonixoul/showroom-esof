@@ -495,7 +495,7 @@ export const TV_CLIENT_JS = `(function () {
       return 'Prix en magasin';
     }
     var rounded = Math.round(num);
-    var str = String(rounded).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    var str = String(rounded).replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ');
     return str + ' F';
   }
 
