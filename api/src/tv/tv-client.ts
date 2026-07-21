@@ -936,6 +936,12 @@ export const TV_CLIENT_JS = `(function () {
           openProductDetail(i);
         });
         catProductsGrid.appendChild(card);
+        // Carré fixé en pixels une fois la carte insérée dans le DOM (et non
+        // via CSS aspect-ratio/padding-top en %) : avec grid-auto-rows:auto,
+        // les navigateurs calculent mal la hauteur de ligne quand un enfant
+        // flex dépend d'un pourcentage pour sa propre hauteur, ce qui
+        // provoquait un chevauchement massif entre les lignes de la grille.
+        photoWrap.style.height = photoWrap.offsetWidth + 'px';
       })(i);
     }
   }

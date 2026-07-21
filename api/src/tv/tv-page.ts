@@ -265,11 +265,29 @@ export const TV_PAGE_HTML = `<!doctype html>
      calcule les déplacements sur cette constante ; un nombre de colonnes
      variable (auto-fill) romprait ce calcul. À ~438px/carte sur un écran
      1920px, on dépasse largement le minimum 300px visé pour un rendu
-     "vu de loin". */
+     "vu de loin".
+     flex/overflow retirés ici et déplacés sur #cat-products-scroll : un
+     conteneur grid avec grid-auto-rows:auto qui est LUI-MÊME un enfant
+     flex (flex:1, hauteur définie par le parent) avec overflow-y:auto se
+     voit compresser ses lignes "auto" pour tenir dans cette hauteur
+     définie au lieu de les dimensionner sur le contenu (bug Chromium
+     vérifié : lignes calculées à 336px pour des cartes de 584px de haut),
+     d'où le chevauchement massif entre lignes. En séparant le rôle
+     "défilement flex" (wrapper) du rôle "grille" (élément grid, hauteur
+     naturelle basée sur le contenu), les lignes se dimensionnent
+     correctement et le wrapper gère le scroll. */
   #cat-products-grid {
     grid-auto-rows: auto;
     align-content: start;
     align-items: start;
+    flex: none;
+    overflow: visible;
+  }
+  #cat-products-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .category-card {
@@ -346,10 +364,16 @@ export const TV_PAGE_HTML = `<!doctype html>
     z-index: 2;
   }
   /* Zone image carrée 1:1, fond blanc pur : rendu "fiche catalogue"
-     (Schneider/Legrand) au lieu de l'ancien fond noir "vignette vidéo". */
+     (Schneider/Legrand) au lieu de l'ancien fond noir "vignette vidéo".
+     Le carré n'est PAS obtenu en CSS (ni aspect-ratio, ni l'astuce
+     padding-top: 100%) : avec grid-auto-rows: auto, les navigateurs
+     calculent mal la hauteur de ligne quand un enfant flex dépend d'un
+     pourcentage pour sa propre hauteur, ce qui provoquait un
+     chevauchement massif entre les lignes de la grille. La hauteur est
+     donc fixée en pixels par JS (tv-client.ts, renderProducts) une fois
+     la carte insérée dans le DOM.  */
   .prod-photo-wrap {
     width: 100%;
-    aspect-ratio: 1 / 1;
     background: #ffffff;
     display: flex;
     align-items: center;
@@ -561,7 +585,9 @@ export const TV_PAGE_HTML = `<!doctype html>
       <div id="cat-sub-chips" class="empty"></div>
       <div id="cat-brand-chips"></div>
       <div id="cat-gamme-chips" class="empty"></div>
-      <div id="cat-products-grid" class="cat-grid"></div>
+      <div id="cat-products-scroll">
+        <div id="cat-products-grid" class="cat-grid"></div>
+      </div>
       <div id="cat-empty" class="cat-empty">Aucun produit dans cette catégorie</div>
       <div id="cat-pagination"></div>
     </div>
