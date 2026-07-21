@@ -258,6 +258,19 @@ export const TV_PAGE_HTML = `<!doctype html>
     overflow-y: auto;
     overflow-x: hidden;
   }
+  /* Grille produits : cartes verticales de hauteur libre (au lieu de la
+     ligne fixe 240px "paysage" de la grille catégories). Nombre de
+     colonnes volontairement gardé identique à CATALOG_GRID_COLS
+     (tv-client.ts) — la navigation télécommande (gauche/droite/haut/bas)
+     calcule les déplacements sur cette constante ; un nombre de colonnes
+     variable (auto-fill) romprait ce calcul. À ~438px/carte sur un écran
+     1920px, on dépasse largement le minimum 300px visé pour un rendu
+     "vu de loin". */
+  #cat-products-grid {
+    grid-auto-rows: auto;
+    align-content: start;
+    align-items: start;
+  }
 
   .category-card {
     background: rgba(255, 255, 255, 0.08);
@@ -316,26 +329,33 @@ export const TV_PAGE_HTML = `<!doctype html>
   }
 
   .product-card {
-    background: rgba(255, 255, 255, 0.08);
+    background: #f4f4f5;
     border: 4px solid transparent;
-    border-radius: 16px;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     transition: transform 0.15s ease, border-color 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   }
   .product-card.focused {
     border-color: #ffcc00;
     transform: scale(1.05);
     box-shadow: 0 0 0 6px rgba(255, 204, 0, 0.35), 0 14px 26px rgba(0, 0, 0, 0.55);
   }
+  /* Zone image carrée 1:1, fond blanc pur : rendu "fiche catalogue"
+     (Schneider/Legrand) au lieu de l'ancien fond noir "vignette vidéo". */
   .prod-photo-wrap {
-    flex: 1;
-    background: #000;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    box-sizing: border-box;
+    padding: 8%;
+    border-radius: 8px 8px 0 0;
   }
   .prod-photo-wrap img {
     width: 100%;
@@ -348,18 +368,23 @@ export const TV_PAGE_HTML = `<!doctype html>
   .prod-name {
     font-size: 22px;
     font-weight: bold;
-    white-space: nowrap;
+    color: #1a1a1a;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
+    min-height: calc(1.25em * 2);
   }
   .prod-brand {
-    font-size: 22px;
-    opacity: 0.75;
+    font-size: 18px;
+    color: #6b6375;
+    margin-top: 4px;
   }
   .prod-price {
     font-size: 24px;
-    color: #ffcc00;
-    margin-top: 4px;
+    color: #1a1a1a;
+    margin-top: 6px;
     font-weight: bold;
   }
 
