@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'services/auth_session.dart';
 import 'services/pending_quote_queue.dart';
+import 'theme/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,8 +20,13 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'ESOF Showroom',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
         useMaterial3: true,
+        scaffoldBackgroundColor: AppColors.background,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.navy,
+          primary: AppColors.navy,
+          secondary: AppColors.orangeAccent,
+        ),
       ),
       home: const HomeScreen(),
     );
