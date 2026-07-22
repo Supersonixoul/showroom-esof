@@ -14,7 +14,12 @@ export const UPLOADS_ROOT = resolve(process.env.UPLOADS_ROOT ?? 'uploads');
 export const ALLOWED_UPLOAD_RESOURCES = ['products', 'promo-videos', 'brands', 'categories', 'subcategories', 'gammes'] as const;
 export type UploadResource = (typeof ALLOWED_UPLOAD_RESOURCES)[number];
 
-const ALLOWED_MIME_PREFIXES = ['image/', 'video/'];
+// Toutes les ressources sauf `promo-videos` (vidéos) ne reçoivent que des images.
+const IMAGE_RESOURCES: UploadResource[] = ['products', 'brands', 'categories', 'subcategories', 'gammes'];
+const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
+
+export const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 Mo
+export const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200 Mo
 
 export const multerConfig: MulterOptions = {
   storage: diskStorage({
@@ -41,15 +46,29 @@ export const multerConfig: MulterOptions = {
       callback(null, `${randomUUID()}${extname(file.originalname)}`);
     },
   }),
-  fileFilter: (_req, file, callback) => {
-    const isAllowed = ALLOWED_MIME_PREFIXES.some((prefix) =>
-      file.mimetype.startsWith(prefix),
-    );
-    if (!isAllowed) {
+  fileFilter: (req, file, callback) => {
+    const resource = (req.params as Record<string, string>).resource as UploadResource;
+    if (IMAGE_RESOURCES.includes(resource)) {
+      const ext = extname(file.originalname).toLowerCase();
+      const isAllowed =
+        file.mimetype.startsWith('image/') &&
+        ALLOWED_IMAGE_EXTENSIONS.includes(ext);
+      if (!isAllowed) {
+        callback(
+          new BadRequestException(
+            'Formats acceptés : jpg, jpeg, png, webp uniquement',
+          ),
+          false,
+        );
+        return;
+      }
+      callback(null, true);
+      return;
+    }
+    // promo-videos
+    if (!file.mimetype.startsWith('video/')) {
       callback(
-        new BadRequestException(
-          'Seuls les fichiers image ou vidéo sont acceptés',
-        ),
+        new BadRequestException('Seuls les fichiers vidéo sont acceptés'),
         false,
       );
       return;
@@ -57,6 +76,9 @@ export const multerConfig: MulterOptions = {
     callback(null, true);
   },
   limits: {
-    fileSize: 200 * 1024 * 1024, // 200 Mo (vidéos promo)
+    // Limite globale la plus haute (vidéos) ; les images sont recontrôlées
+    // à MAX_IMAGE_SIZE après upload dans MediaController — une limite par
+    // ressource n'est pas exprimable nativement dans les options multer.
+    fileSize: MAX_VIDEO_SIZE,
   },
 };

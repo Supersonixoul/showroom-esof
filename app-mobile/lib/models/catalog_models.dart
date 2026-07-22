@@ -24,23 +24,31 @@ class Category {
   final String id;
   final String name;
   final String? parentId;
+  final String? imageUrl;
 
-  Category({required this.id, required this.name, this.parentId});
+  Category({
+    required this.id,
+    required this.name,
+    this.parentId,
+    this.imageUrl,
+  });
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
         id: json['id'] as String,
         name: json['name'] as String,
         parentId: json['parentId'] as String?,
+        imageUrl: json['imageUrl'] as String?,
       );
 
   factory Category.fromMap(Map<String, dynamic> map) => Category(
         id: map['id'] as String,
         name: map['name'] as String,
         parentId: map['parentId'] as String?,
+        imageUrl: map['imageUrl'] as String?,
       );
 
   Map<String, dynamic> toMap() =>
-      {'id': id, 'name': name, 'parentId': parentId};
+      {'id': id, 'name': name, 'parentId': parentId, 'imageUrl': imageUrl};
 }
 
 class ProductSpec {

@@ -21,7 +21,7 @@ class DatabaseService {
     final path = join(dbPath, 'showroom_mobile.db');
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE IF NOT EXISTS brands (
@@ -34,7 +34,8 @@ class DatabaseService {
           CREATE TABLE IF NOT EXISTS categories (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
-            parentId TEXT
+            parentId TEXT,
+            imageUrl TEXT
           )
         ''');
         await db.execute('''
@@ -96,6 +97,9 @@ class DatabaseService {
           ''');
           await db.delete('sync_meta',
               where: 'key = ?', whereArgs: ['catalogSyncedAt']);
+        }
+        if (oldVersion < 5) {
+          await db.execute('ALTER TABLE categories ADD COLUMN imageUrl TEXT');
         }
       },
     );
