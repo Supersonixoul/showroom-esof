@@ -99,7 +99,13 @@ class DatabaseService {
               where: 'key = ?', whereArgs: ['catalogSyncedAt']);
         }
         if (oldVersion < 5) {
+          // Les catégories déjà en cache ont imageUrl=NULL après l'ALTER
+          // TABLE et ne seraient pas réémises par une sync différentielle
+          // (non "modifiées" depuis le dernier curseur) : on force un
+          // rechargement complet via /catalog/full au prochain refresh.
           await db.execute('ALTER TABLE categories ADD COLUMN imageUrl TEXT');
+          await db.delete('sync_meta',
+              where: 'key = ?', whereArgs: ['catalogSyncedAt']);
         }
       },
     );
