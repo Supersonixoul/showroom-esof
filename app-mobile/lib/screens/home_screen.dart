@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../models/catalog_models.dart';
+import '../services/api_service.dart';
 import '../services/auth_session.dart';
 import '../services/catalog_repository.dart';
 import '../theme/app_colors.dart';
@@ -12,9 +14,9 @@ import 'clients_list_screen.dart';
 import 'login_screen.dart';
 import 'server_settings_screen.dart';
 
-/// Écran d'accueil du mode client (spec §6.2) : hero de marque, accès
-/// rapides (Catégories / Marques / Caractéristiques) et bandeau des marques
-/// partenaires.
+/// Écran d'accueil du mode client (spec §6.2) : en-tête compact (logo +
+/// slogan + accès réglages), grille de catégories et bandeau des marques
+/// partenaires. Le pied de page reste toujours collé au bas de l'écran.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -32,41 +34,30 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('ESOF Showroom'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.work_outline),
-            tooltip: 'Espace commercial',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AuthSession.instance.currentUser.value != null
-                    ? const ClientsListScreen()
-                    : const LoginScreen(),
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            const _CompactHeader(),
+            const _SloganBanner(),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: const [
+                    SizedBox(height: 16),
+                    _CategoriesSection(),
+                    SizedBox(height: 28),
+                    _SectionTitle('Nos grandes marques'),
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: _BrandsCarousel(),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Réglages du serveur',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ServerSettingsScreen()),
-            ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: const [
-            _HeroHeader(),
-            _QuickAccessSection(),
-            _SectionTitle('Nos grandes marques'),
-            Padding(
-              padding: EdgeInsets.only(bottom: 8),
-              child: _BrandsCarousel(),
-            ),
-            _Footer(),
+            const _Footer(),
           ],
         ),
       ),
@@ -74,158 +65,83 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// En-tête héro : dégradé navy → bleu, logo ESOF sur carte blanche, slogan.
-/// Animation d'entrée (fondu + léger slide vers le haut) jouée une seule fois.
-class _HeroHeader extends StatefulWidget {
-  const _HeroHeader();
-
-  @override
-  State<_HeroHeader> createState() => _HeroHeaderState();
-}
-
-class _HeroHeaderState extends State<_HeroHeader>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _fade;
-  late final Animation<Offset> _slide;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.15),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+/// En-tête compact : logo (agrandi) à gauche, accès « plus » (espace
+/// commercial / marques / caractéristiques) et réglages du serveur à droite.
+/// Le slogan est porté par [_SloganBanner], juste en dessous.
+class _CompactHeader extends StatelessWidget {
+  const _CompactHeader();
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fade,
-      child: SlideTransition(
-        position: _slide,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: AppColors.heroGradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(24),
-              bottomRight: Radius.circular(24),
-            ),
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Image.asset(
-                  'assets/images/logo_esof.png',
-                  height: 72,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Text(
-                    'ESOF',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.navy,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "Distributeur agréé d'équipements électriques de grandes marques",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w300,
-                  letterSpacing: 2,
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
-    );
-  }
-}
-
-/// Rangée des 3 accès rapides (Catégories / Marques / Caractéristiques),
-/// branchée sur les écrans existants.
-class _QuickAccessSection extends StatelessWidget {
-  const _QuickAccessSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Row(
         children: [
-          Expanded(
-            child: _QuickAccessCard(
-              icon: Icons.category,
-              label: 'Catégories',
-              color: AppColors.blueAccent,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const CategoriesScreen(
-                    parentId: null,
-                    title: 'Catégories',
-                  ),
-                ),
+          Image.asset(
+            'assets/images/logo_esof.png',
+            height: 80,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => const Text(
+              'ESOF',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: AppColors.navy,
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _QuickAccessCard(
-              icon: Icons.business,
-              label: 'Marques',
-              color: AppColors.orangeAccent,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const BrandsScreen()),
-              ),
-            ),
+          const Spacer(),
+          PopupMenuButton<int>(
+            icon: const Icon(Icons.more_vert, color: AppColors.navy),
+            tooltip: 'Plus',
+            onSelected: (value) {
+              switch (value) {
+                case 0:
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          AuthSession.instance.currentUser.value != null
+                              ? const ClientsListScreen()
+                              : const LoginScreen(),
+                    ),
+                  );
+                  break;
+                case 1:
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const BrandsScreen()),
+                  );
+                  break;
+                case 2:
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const CharacteristicsScreen(),
+                    ),
+                  );
+                  break;
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 0, child: Text('Espace commercial')),
+              PopupMenuItem(value: 1, child: Text('Marques')),
+              PopupMenuItem(value: 2, child: Text('Caractéristiques')),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _QuickAccessCard(
-              icon: Icons.tune,
-              label: 'Caractéristiques',
-              color: AppColors.blueAccent,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const CharacteristicsScreen(),
-                ),
-              ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: AppColors.navy),
+            tooltip: 'Réglages du serveur',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ServerSettingsScreen()),
             ),
           ),
         ],
@@ -234,53 +150,192 @@ class _QuickAccessSection extends StatelessWidget {
   }
 }
 
-class _QuickAccessCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickAccessCard({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
+/// Bannière fine (dégradé navy → bleu) portant le slogan, juste sous l'en-tête
+/// logo. Ne défile pas avec le contenu.
+class _SloganBanner extends StatelessWidget {
+  const _SloganBanner();
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      elevation: 2,
-      shadowColor: Colors.black26,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 26),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-            ],
+    return Container(
+      width: double.infinity,
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: AppColors.heroGradient,
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+      ),
+      child: const Text(
+        "Distributeur agréé d'équipements électriques de grandes marques",
+        textAlign: TextAlign.center,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+          height: 1.2,
+        ),
+      ),
+    );
+  }
+}
+
+const double _kCategoryTileWidth = 68;
+const double _kCategoryTileHeight = 92;
+const double _kCategoryThumbSize = 52;
+
+/// Grille horizontale des catégories sur 4 lignes fixes, défilement
+/// horizontal libre. Chargée depuis le catalogue déjà synchronisé via
+/// [CatalogRepository] (lui-même basé sur l'adresse de [ServerConfig]).
+class _CategoriesSection extends StatefulWidget {
+  const _CategoriesSection();
+
+  @override
+  State<_CategoriesSection> createState() => _CategoriesSectionState();
+}
+
+class _CategoriesSectionState extends State<_CategoriesSection> {
+  bool _timedOut = false;
+  Timer? _timeoutTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timeoutTimer = Timer(const Duration(seconds: 6), () {
+      if (mounted) setState(() => _timedOut = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timeoutTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<CatalogSnapshot>(
+      valueListenable: CatalogRepository.instance.snapshot,
+      builder: (context, catalog, _) {
+        final categories =
+            catalog.categories.where((c) => c.parentId == null).toList();
+        if (categories.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            child: Center(
+              child: _timedOut
+                  ? const Text(
+                      "Serveur injoignable — impossible de charger les catégories",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                    )
+                  : const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+            ),
+          );
+        }
+        const rows = 4;
+        return SizedBox(
+          height: rows * _kCategoryTileHeight,
+          child: GridView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: rows,
+              mainAxisSpacing: 4,
+              crossAxisSpacing: 8,
+              childAspectRatio: _kCategoryTileWidth / _kCategoryTileHeight,
+            ),
+            itemCount: categories.length,
+            itemBuilder: (context, index) =>
+                _HomeCategoryTile(category: categories[index]),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HomeCategoryTile extends StatelessWidget {
+  final Category category;
+
+  const _HomeCategoryTile({required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => CategoriesScreen(
+            parentId: category.id,
+            title: category.name,
           ),
         ),
       ),
+      child: SizedBox(
+        width: _kCategoryTileWidth,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: _buildThumbnail(),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              category.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnail() {
+    final url = category.imageUrl;
+    if (url == null || url.isEmpty) return _placeholder();
+    return Image.network(
+      ApiService.mediaUrl(url),
+      width: _kCategoryThumbSize,
+      height: _kCategoryThumbSize,
+      fit: BoxFit.cover,
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return _placeholder(loading: true);
+      },
+      errorBuilder: (context, error, stackTrace) => _placeholder(),
+    );
+  }
+
+  Widget _placeholder({bool loading = false}) {
+    return Container(
+      width: _kCategoryThumbSize,
+      height: _kCategoryThumbSize,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      alignment: Alignment.center,
+      child: loading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(Icons.category, color: Colors.grey.shade500, size: 26),
     );
   }
 }
@@ -382,7 +437,7 @@ class _BrandsCarouselState extends State<_BrandsCarousel> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 96,
+      height: 50,
       child: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
           if (notification is ScrollStartNotification &&
@@ -424,7 +479,7 @@ class _BrandCard extends StatelessWidget {
     return Container(
       width: width,
       margin: EdgeInsets.symmetric(horizontal: margin),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -439,14 +494,14 @@ class _BrandCard extends StatelessWidget {
       ),
       child: Image.asset(
         brand.assetPath,
-        height: 48,
+        height: 25,
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) => Text(
           brand.name,
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 12,
+            fontSize: 11,
             color: AppColors.navy,
           ),
         ),
