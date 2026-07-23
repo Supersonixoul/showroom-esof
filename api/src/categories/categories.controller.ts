@@ -15,6 +15,7 @@ import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { MoveCategoryDto } from './dto/move-category.dto';
+import { SetVisibilityDto } from './dto/set-visibility.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -52,6 +53,14 @@ export class CategoriesController {
   @Patch(':id/move')
   move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MoveCategoryDto) {
     return this.categoriesService.move(id, dto);
+  }
+
+  @Patch(':id/visibility')
+  setVisibility(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SetVisibilityDto,
+  ) {
+    return this.categoriesService.setVisibility(id, dto.isActive);
   }
 
   @Delete(':id')

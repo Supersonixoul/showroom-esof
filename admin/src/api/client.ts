@@ -94,6 +94,11 @@ export const categoriesApi = {
       method: 'PATCH',
       body: JSON.stringify({ direction }),
     }),
+  setVisibility: (id: string, isActive: boolean) =>
+    request<Category>(`/categories/${id}/visibility`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
+    }),
 };
 
 // ---- Subcategories --------------------------------------------------------
@@ -186,6 +191,11 @@ export const productsApi = {
     request<ProductImage>(`/products/${productId}/images/${imageId}/move`, {
       method: 'PATCH',
       body: JSON.stringify({ direction }),
+    }),
+  setVisibility: (id: string, isActive: boolean) =>
+    request<Product>(`/products/${id}/visibility`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
     }),
 };
 

@@ -86,6 +86,12 @@ export function ProductsPage() {
     onSuccess: invalidate,
   });
 
+  const setVisibilityMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      productsApi.setVisibility(id, isActive),
+    onSuccess: invalidate,
+  });
+
   function resetForm() {
     setName('');
     setReference('');
@@ -160,7 +166,8 @@ export function ProductsPage() {
   }
 
   const saving = createMutation.isPending || updateMutation.isPending;
-  const mutationError = createMutation.error || updateMutation.error;
+  const mutationError =
+    createMutation.error || updateMutation.error || setVisibilityMutation.error;
 
   function brandName(id?: string | null) {
     if (!id) return '—';
@@ -364,6 +371,7 @@ export function ProductsPage() {
           <thead>
             <tr>
               <th>Ordre</th>
+              <th>Visible</th>
               <th>Photo</th>
               <th>Référence</th>
               <th>Nom</th>
@@ -375,7 +383,7 @@ export function ProductsPage() {
           </thead>
           <tbody>
             {sortedProducts.map((product, index) => (
-              <tr key={product.id}>
+              <tr key={product.id} className={product.isActive ? undefined : 'row-hidden'}>
                 <td>
                   <div className="reorder-buttons">
                     <button
@@ -403,6 +411,18 @@ export function ProductsPage() {
                       ↓
                     </button>
                   </div>
+                </td>
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={product.isActive}
+                    disabled={setVisibilityMutation.isPending && setVisibilityMutation.variables?.id === product.id}
+                    aria-label={product.isActive ? 'Masquer le produit' : 'Rendre visible le produit'}
+                    onChange={(e) =>
+                      setVisibilityMutation.mutate({ id: product.id, isActive: e.target.checked })
+                    }
+                  />
+                  {!product.isActive && <span className="tag-hidden">Masqué</span>}
                 </td>
                 <td>
                   <div className="product-photo-frame" style={{ width: 48, height: 48 }}>
@@ -454,7 +474,7 @@ export function ProductsPage() {
             ))}
             {sortedProducts.length === 0 && (
               <tr>
-                <td colSpan={7} className="muted">
+                <td colSpan={9} className="muted">
                   Aucun produit.
                 </td>
               </tr>

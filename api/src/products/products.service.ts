@@ -191,6 +191,12 @@ export class ProductsService {
     return updated;
   }
 
+  /** Bascule la visibilité du produit dans les apps (mobile/TV) — voir catalog.service.ts. */
+  async setVisibility(id: string, isActive: boolean) {
+    await this.findOne(id);
+    return this.prisma.product.update({ where: { id }, data: { isActive } });
+  }
+
   // ---- Caractéristiques (specs) ---------------------------------------
 
   async addSpec(productId: string, dto: CreateProductSpecDto) {

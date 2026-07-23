@@ -48,6 +48,24 @@ export function CategoriesPage() {
     onSuccess: invalidate,
   });
 
+  const setVisibilityMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      categoriesApi.setVisibility(id, isActive),
+    onSuccess: invalidate,
+  });
+
+  function handleVisibilityChange(category: Category, isActive: boolean) {
+    if (
+      !isActive &&
+      !confirm(
+        'Masquer cette catégorie masquera aussi tous ses produits dans les applications. Continuer ?',
+      )
+    ) {
+      return;
+    }
+    setVisibilityMutation.mutate({ id: category.id, isActive });
+  }
+
   const [parentFilter, setParentFilter] = useState('');
 
   function resetForm() {
@@ -96,7 +114,10 @@ export function CategoriesPage() {
 
   const saving = createMutation.isPending || updateMutation.isPending;
   const mutationError =
-    createMutation.error || updateMutation.error || moveMutation.error;
+    createMutation.error ||
+    updateMutation.error ||
+    moveMutation.error ||
+    setVisibilityMutation.error;
   const removeError = removeMutation.error;
 
   function parentName(id: string | null | undefined) {
@@ -233,6 +254,7 @@ export function CategoriesPage() {
           <thead>
             <tr>
               <th>Ordre</th>
+              <th>Visible</th>
               <th>Nom</th>
               <th>Parente</th>
               <th>Image</th>
@@ -241,7 +263,7 @@ export function CategoriesPage() {
           </thead>
           <tbody>
             {displayedCategories.map((category, index) => (
-              <tr key={category.id}>
+              <tr key={category.id} className={category.isActive ? undefined : 'row-hidden'}>
                 <td>
                   <div className="reorder-buttons">
                     <button
@@ -275,6 +297,16 @@ export function CategoriesPage() {
                       ↓
                     </button>
                   </div>
+                </td>
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={category.isActive}
+                    disabled={setVisibilityMutation.isPending && setVisibilityMutation.variables?.id === category.id}
+                    aria-label={category.isActive ? 'Masquer la catégorie' : 'Rendre visible la catégorie'}
+                    onChange={(e) => handleVisibilityChange(category, e.target.checked)}
+                  />
+                  {!category.isActive && <span className="tag-hidden">Masqué</span>}
                 </td>
                 <td>{category.name}</td>
                 <td className="muted">{parentName(category.parentId)}</td>
@@ -314,7 +346,7 @@ export function CategoriesPage() {
             ))}
             {displayedCategories.length === 0 && (
               <tr>
-                <td colSpan={5} className="muted">
+                <td colSpan={6} className="muted">
                   Aucune catégorie.
                 </td>
               </tr>

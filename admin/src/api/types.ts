@@ -10,6 +10,7 @@ export interface Category {
   id: string;
   name: string;
   imageUrl?: string | null;
+  isActive: boolean;
   displayOrder: number;
   parentId?: string | null;
   parent?: Category | null;

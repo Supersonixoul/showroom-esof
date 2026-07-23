@@ -437,3 +437,17 @@ button.icon-btn {
   background: var(--accent-bg);
   color: var(--accent);
 }
+
+.tag-hidden {
+  display: inline-block;
+  font-size: 13px;
+  padding: 2px 8px;
+  margin-left: 8px;
+  border-radius: 10px;
+  background: #f4d9d9;
+  color: #a33;
+}
+
+tr.row-hidden {
+  opacity: 0.55;
+}

@@ -88,6 +88,12 @@ export class CategoriesService {
     await this.prisma.category.delete({ where: { id } });
   }
 
+  /** Bascule la visibilité de la catégorie dans les apps (mobile/TV) — voir catalog.service.ts. */
+  async setVisibility(id: string, isActive: boolean) {
+    await this.findOne(id);
+    return this.prisma.category.update({ where: { id }, data: { isActive } });
+  }
+
   async move(id: string, dto: MoveCategoryDto) {
     const category = await this.findOne(id);
 

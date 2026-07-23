@@ -7,18 +7,56 @@ import { buildImageVariants } from '../products/image-variants.util';
 export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Visibilité en cascade : une catégorie n'est visible que si elle-même ET
+   * tous ses ancêtres (via `parentId`) ont `isActive = true`. Catégorie
+   * masquée -> masque aussi ses sous-catégories/descendantes.
+   */
+  private computeVisibleCategoryIds(
+    categories: { id: string; parentId: string | null; isActive: boolean }[],
+  ): Set<string> {
+    const byId = new Map(categories.map((c) => [c.id, c]));
+    const cache = new Map<string, boolean>();
+    const isVisible = (id: string): boolean => {
+      if (cache.has(id)) return cache.get(id) as boolean;
+      const cat = byId.get(id);
+      if (!cat) return false;
+      cache.set(id, false); // garde-fou anti-cycle
+      const result = cat.isActive && (!cat.parentId || isVisible(cat.parentId));
+      cache.set(id, result);
+      return result;
+    };
+    const visible = new Set<string>();
+    for (const c of categories) {
+      if (isVisible(c.id)) visible.add(c.id);
+    }
+    return visible;
+  }
+
+  private async getVisibleCategoryIds(): Promise<Set<string>> {
+    const categories = await this.prisma.category.findMany({
+      select: { id: true, parentId: true, isActive: true },
+    });
+    return this.computeVisibleCategoryIds(categories);
+  }
+
   /** Catalogue complet — utilisé lors de la première installation d'une app. */
   async getFull() {
-    const [brands, categories, products, promoVideos] = await Promise.all([
+    const [brands, allCategories, promoVideos] = await Promise.all([
       this.prisma.brand.findMany(),
       this.prisma.category.findMany({
         orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
       }),
-      this.prisma.product.findMany({
-        include: { specs: true, images: { orderBy: { position: 'asc' } } },
-      }),
       this.prisma.promoVideo.findMany({ orderBy: { position: 'asc' } }),
     ]);
+
+    const visibleCategoryIds = this.computeVisibleCategoryIds(allCategories);
+    const categories = allCategories.filter((c) => visibleCategoryIds.has(c.id));
+
+    const products = await this.prisma.product.findMany({
+      where: { categoryId: { in: Array.from(visibleCategoryIds) } },
+      include: { specs: true, images: { orderBy: { position: 'asc' } } },
+    });
 
     return {
       syncedAt: new Date().toISOString(),
@@ -42,23 +80,39 @@ export class CatalogService {
     });
   }
 
-  /** Éléments créés/modifiés depuis `since` — utilisé pour la synchronisation différentielle. */
+  /**
+   * Éléments créés/modifiés depuis `since` — utilisé pour la synchronisation
+   * différentielle. Note : une catégorie masquée APRÈS le dernier sync complet
+   * d'un appareil ne disparaîtra pas via ce lot différentiel (elle n'est
+   * simplement plus renvoyée, mais rien n'indique à l'app de la retirer de son
+   * cache local) — limitation connue, voir remarque dans la réponse finale.
+   */
   async getSince(since: Date) {
-    const [brands, categories, products, promoVideos] = await Promise.all([
+    const [brands, allCategories, promoVideos] = await Promise.all([
       this.prisma.brand.findMany({ where: { updatedAt: { gt: since } } }),
+      // Toutes les catégories (pas seulement celles modifiées) sont
+      // nécessaires pour calculer correctement la cascade de visibilité.
       this.prisma.category.findMany({
-        where: { updatedAt: { gt: since } },
         orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
-      }),
-      this.prisma.product.findMany({
-        where: { updatedAt: { gt: since } },
-        include: { specs: true, images: { orderBy: { position: 'asc' } } },
       }),
       this.prisma.promoVideo.findMany({
         where: { updatedAt: { gt: since } },
         orderBy: { position: 'asc' },
       }),
     ]);
+
+    const visibleCategoryIds = this.computeVisibleCategoryIds(allCategories);
+    const categories = allCategories.filter(
+      (c) => c.updatedAt > since && visibleCategoryIds.has(c.id),
+    );
+
+    const products = await this.prisma.product.findMany({
+      where: {
+        updatedAt: { gt: since },
+        categoryId: { in: Array.from(visibleCategoryIds) },
+      },
+      include: { specs: true, images: { orderBy: { position: 'asc' } } },
+    });
 
     return {
       syncedAt: new Date().toISOString(),
@@ -91,7 +145,10 @@ export class CatalogService {
         },
       },
     });
-    return categories.map((category) => ({
+    const visibleCategoryIds = this.computeVisibleCategoryIds(categories);
+    return categories
+      .filter((category) => visibleCategoryIds.has(category.id))
+      .map((category) => ({
       id: category.id,
       name: category.name,
       imageUrl: category.imageUrl,
@@ -113,6 +170,21 @@ export class CatalogService {
   async getCatalogProducts(query: FindCatalogProductsQueryDto) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 8;
+
+    const visibleCategoryIds = await this.getVisibleCategoryIds();
+    if (!visibleCategoryIds.has(query.categoryId)) {
+      // Catégorie masquée (ou l'un de ses ancêtres) : aucun produit exposé.
+      return {
+        items: [],
+        page,
+        pageSize,
+        totalItems: 0,
+        totalPages: 1,
+        brands: [],
+        gammes: [],
+      };
+    }
+
     const baseWhere = { categoryId: query.categoryId, isActive: true };
     // subcategoryId/gammeId absents (puce "Toutes") -> pas de filtre, inclut
     // aussi les produits sans sous-catégorie / sans gamme.
@@ -198,6 +270,11 @@ export class CatalogService {
       },
     });
     if (!product) {
+      throw new NotFoundException(`Produit ${id} introuvable`);
+    }
+    const visibleCategoryIds = await this.getVisibleCategoryIds();
+    if (!visibleCategoryIds.has(product.categoryId)) {
+      // Catégorie masquée (ou l'un de ses ancêtres) : traité comme introuvable.
       throw new NotFoundException(`Produit ${id} introuvable`);
     }
     return {

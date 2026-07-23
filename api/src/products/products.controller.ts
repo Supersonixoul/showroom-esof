@@ -19,6 +19,7 @@ import { FindProductsQueryDto } from './dto/find-products-query.dto';
 import { CreateProductSpecDto } from './dto/create-product-spec.dto';
 import { CreateProductImageDto } from './dto/create-product-image.dto';
 import { MoveProductDto } from './dto/move-product.dto';
+import { SetVisibilityDto } from './dto/set-visibility.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -62,6 +63,14 @@ export class ProductsController {
   @Patch(':id/move')
   move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MoveProductDto) {
     return this.productsService.move(id, dto);
+  }
+
+  @Patch(':id/visibility')
+  setVisibility(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SetVisibilityDto,
+  ) {
+    return this.productsService.setVisibility(id, dto.isActive);
   }
 
   @Post(':id/specs')
