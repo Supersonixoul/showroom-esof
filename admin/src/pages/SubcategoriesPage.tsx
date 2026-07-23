@@ -150,7 +150,8 @@ export function SubcategoriesPage() {
   }
 
   const saving = createMutation.isPending || updateMutation.isPending;
-  const mutationError = createMutation.error || updateMutation.error;
+  const mutationError =
+    createMutation.error || updateMutation.error || moveMutation.error;
   const removeError = removeMutation.error;
 
   function categoryName(id: string) {
