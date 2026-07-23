@@ -21,7 +21,7 @@ class DatabaseService {
     final path = join(dbPath, 'showroom_mobile.db');
     return openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE IF NOT EXISTS brands (
@@ -35,7 +35,8 @@ class DatabaseService {
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             parentId TEXT,
-            imageUrl TEXT
+            imageUrl TEXT,
+            displayOrder INTEGER NOT NULL DEFAULT 0
           )
         ''');
         await db.execute('''
@@ -104,6 +105,14 @@ class DatabaseService {
           // (non "modifiées" depuis le dernier curseur) : on force un
           // rechargement complet via /catalog/full au prochain refresh.
           await db.execute('ALTER TABLE categories ADD COLUMN imageUrl TEXT');
+          await db.delete('sync_meta',
+              where: 'key = ?', whereArgs: ['catalogSyncedAt']);
+        }
+        if (oldVersion < 6) {
+          // Idem pour displayOrder : les lignes déjà en cache auraient la
+          // valeur par défaut (0) pour toujours sans un resync complet.
+          await db.execute(
+              'ALTER TABLE categories ADD COLUMN displayOrder INTEGER NOT NULL DEFAULT 0');
           await db.delete('sync_meta',
               where: 'key = ?', whereArgs: ['catalogSyncedAt']);
         }
@@ -235,7 +244,8 @@ class DatabaseService {
   Future<CatalogSnapshot> getCatalog() async {
     final db = await _database;
     final brandMaps = await db.query('brands');
-    final categoryMaps = await db.query('categories');
+    final categoryMaps =
+        await db.query('categories', orderBy: 'displayOrder ASC, name ASC');
     final productMaps = await db.query('products');
     final specMaps = await db.query('product_specs');
     final imageMaps = await db.query('product_images', orderBy: 'position ASC');

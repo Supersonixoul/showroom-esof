@@ -11,7 +11,9 @@ export class CatalogService {
   async getFull() {
     const [brands, categories, products, promoVideos] = await Promise.all([
       this.prisma.brand.findMany(),
-      this.prisma.category.findMany(),
+      this.prisma.category.findMany({
+        orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+      }),
       this.prisma.product.findMany({
         include: { specs: true, images: { orderBy: { position: 'asc' } } },
       }),
@@ -44,7 +46,10 @@ export class CatalogService {
   async getSince(since: Date) {
     const [brands, categories, products, promoVideos] = await Promise.all([
       this.prisma.brand.findMany({ where: { updatedAt: { gt: since } } }),
-      this.prisma.category.findMany({ where: { updatedAt: { gt: since } } }),
+      this.prisma.category.findMany({
+        where: { updatedAt: { gt: since } },
+        orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+      }),
       this.prisma.product.findMany({
         where: { updatedAt: { gt: since } },
         include: { specs: true, images: { orderBy: { position: 'asc' } } },
