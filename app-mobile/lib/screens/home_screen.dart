@@ -10,6 +10,7 @@ import 'categories_screen.dart';
 import 'characteristics_screen.dart';
 import 'clients_list_screen.dart';
 import 'login_screen.dart';
+import 'server_settings_screen.dart';
 
 /// Écran d'accueil du mode client (spec §6.2) : hero de marque, accès
 /// rapides (Catégories / Marques / Caractéristiques) et bandeau des marques
@@ -43,6 +44,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? const ClientsListScreen()
                     : const LoginScreen(),
               ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Réglages du serveur',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ServerSettingsScreen()),
             ),
           ),
         ],

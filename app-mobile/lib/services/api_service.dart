@@ -1,17 +1,14 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
 import '../models/catalog_models.dart';
+import 'server_config.dart';
 
 class ApiService {
-  /// 10.0.2.2 = l'hôte vu depuis l'émulateur Android ; localhost sur les
-  /// autres cibles (iOS simulator, desktop).
-  static String get baseUrl {
-    if (Platform.isAndroid) return 'http://10.0.2.2:3000';
-    return 'http://localhost:3000';
-  }
+  /// Adresse du serveur backend, configurable depuis l'écran de réglages
+  /// (voir [ServerConfig]) — jamais figée en dur dans le code.
+  static String get baseUrl => ServerConfig.getBaseUrl();
 
   static String mediaUrl(String url) {
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
