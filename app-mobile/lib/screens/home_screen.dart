@@ -451,13 +451,50 @@ class _BrandCard extends StatelessWidget {
   }
 }
 
-enum _FeaturedKind { newProduct, promo, sale }
+enum _FeaturedKind { newProduct, promo }
+
+/// Une entrée du carrousel fusionné : un produit et son étiquette
+/// (nouveau/promo). Si un produit est présent à la fois dans les
+/// nouveautés et les promotions, seule l'étiquette « promo » est retenue
+/// (voir [_buildFeaturedEntries]).
+class _FeaturedEntry {
+  final FeaturedProduct product;
+  final _FeaturedKind kind;
+
+  const _FeaturedEntry({required this.product, required this.kind});
+}
+
+/// Fusionne nouveautés et promotions en une seule liste, intercalées
+/// (nouveau, promo, nouveau, promo…) ; une fois l'une des deux listes
+/// épuisée, le reste de l'autre est simplement concaténé. Un produit
+/// présent dans les deux listes n'apparaît qu'une fois, étiqueté « promo »
+/// (priorité à la promotion).
+List<_FeaturedEntry> _buildFeaturedEntries(FeaturedProducts data) {
+  final promoIds = data.promotions.map((p) => p.id).toSet();
+  final newItems = data.newProducts
+      .where((p) => !promoIds.contains(p.id))
+      .map((p) => _FeaturedEntry(product: p, kind: _FeaturedKind.newProduct))
+      .toList();
+  final promoItems = data.promotions
+      .map((p) => _FeaturedEntry(product: p, kind: _FeaturedKind.promo))
+      .toList();
+
+  final merged = <_FeaturedEntry>[];
+  final maxLen = newItems.length > promoItems.length
+      ? newItems.length
+      : promoItems.length;
+  for (var i = 0; i < maxLen; i++) {
+    if (i < newItems.length) merged.add(newItems[i]);
+    if (i < promoItems.length) merged.add(promoItems[i]);
+  }
+  return merged;
+}
 
 /// Section « Mis en avant », affichée juste sous la bannière de slogan :
-/// jusqu'à 3 blocs (Nouveautés / Promotions / Soldes) alimentés par
-/// `GET /catalog/featured`. Un bloc n'est affiché que s'il contient des
-/// produits ; la section entière est masquée si les 3 blocs sont vides ou
-/// en cas d'échec réseau (échec silencieux, pas de bannière d'erreur).
+/// un unique carrousel pleine largeur mélangeant nouveautés et
+/// promotions, alimenté par `GET /catalog/featured`. Masquée si la liste
+/// fusionnée est vide ou en cas d'échec réseau (échec silencieux, pas de
+/// bannière d'erreur).
 class _FeaturedSection extends StatefulWidget {
   const _FeaturedSection();
 
@@ -507,73 +544,132 @@ class _FeaturedSectionState extends State<_FeaturedSection> {
     final data = _data;
     if (data == null || data.isEmpty) return const SizedBox.shrink();
 
-    final items = <Widget>[];
-    void addGroup(String title, Color color, List<FeaturedProduct> products,
-        _FeaturedKind kind) {
-      if (products.isEmpty) return;
-      items.add(_FeaturedGroupLabel(title: title, color: color));
-      items.addAll(products.map((p) => _FeaturedProductCard(
-            product: p,
-            accentColor: color,
-            kind: kind,
-          )));
-    }
+    final entries = _buildFeaturedEntries(data);
+    if (entries.isEmpty) return const SizedBox.shrink();
 
-    addGroup('Nouveautés', AppColors.featuredNew, data.newProducts,
-        _FeaturedKind.newProduct);
-    addGroup('Promotions', AppColors.featuredPromo, data.promotions,
-        _FeaturedKind.promo);
-    addGroup('Soldes', AppColors.featuredSale, data.sales, _FeaturedKind.sale);
+    return _FeaturedCombinedCarousel(entries: entries);
+  }
+}
+
+/// Bande + carrousel fusionnés : la bande affiche « Nouveau » (vert) ou
+/// « Promotion » (orange) selon la carte actuellement visible, avec une
+/// transition douce (~300 ms). Le carrousel défile automatiquement toutes
+/// les 4 secondes, se met en pause pendant une interaction manuelle et
+/// reprend après ~5 secondes d'inactivité ; boucle en fin de liste. Pas de
+/// défilement auto si 0 ou 1 entrée.
+class _FeaturedCombinedCarousel extends StatefulWidget {
+  final List<_FeaturedEntry> entries;
+
+  const _FeaturedCombinedCarousel({required this.entries});
+
+  @override
+  State<_FeaturedCombinedCarousel> createState() =>
+      _FeaturedCombinedCarouselState();
+}
+
+class _FeaturedCombinedCarouselState extends State<_FeaturedCombinedCarousel> {
+  late final PageController _controller;
+  Timer? _autoTimer;
+  Timer? _resumeTimer;
+  int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController(viewportFraction: 0.92);
+    _startAutoScroll();
+  }
+
+  void _startAutoScroll() {
+    _autoTimer?.cancel();
+    if (widget.entries.length <= 1) return;
+    _autoTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!_controller.hasClients) return;
+      final next = (_page + 1) % widget.entries.length;
+      _controller.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  void _onManualInteraction() {
+    _autoTimer?.cancel();
+    _resumeTimer?.cancel();
+    _resumeTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) _startAutoScroll();
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoTimer?.cancel();
+    _resumeTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current = widget.entries[_page.clamp(0, widget.entries.length - 1)];
+    final isPromo = current.kind == _FeaturedKind.promo;
+    final label = isPromo ? 'Promotion' : 'Nouveau';
+    final color = isPromo ? AppColors.featuredPromo : AppColors.featuredNew;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _SectionTitle('Mis en avant'),
-        SizedBox(
-          height: 190,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: items.length,
-            itemBuilder: (context, index) => items[index],
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: double.infinity,
+          color: color,
+          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 16),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: SizedBox(
+            height: 100,
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification is ScrollStartNotification &&
+                    notification.dragDetails != null) {
+                  _onManualInteraction();
+                }
+                return false;
+              },
+              child: PageView.builder(
+                controller: _controller,
+                itemCount: widget.entries.length,
+                onPageChanged: (index) => setState(() => _page = index),
+                itemBuilder: (context, index) {
+                  final entry = widget.entries[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: _FeaturedProductCard(
+                      product: entry.product,
+                      accentColor: entry.kind == _FeaturedKind.promo
+                          ? AppColors.featuredPromo
+                          : AppColors.featuredNew,
+                      kind: entry.kind,
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 8),
       ],
-    );
-  }
-}
-
-/// Étiquette colorée signalant le début d'un groupe (Nouveautés/Promotions/
-/// Soldes) au sein du carrousel horizontal unique "Mis en avant".
-class _FeaturedGroupLabel extends StatelessWidget {
-  final String title;
-  final Color color;
-
-  const _FeaturedGroupLabel({required this.title, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 56,
-      margin: const EdgeInsets.only(right: 10),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      alignment: Alignment.center,
-      child: RotatedBox(
-        quarterTurns: 3,
-        child: Text(
-          title,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-          ),
-        ),
-      ),
     );
   }
 }
@@ -602,19 +698,15 @@ class _FeaturedProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reducedPrice = kind == _FeaturedKind.promo
-        ? product.promoPrice
-        : kind == _FeaturedKind.sale
-            ? product.salePrice
-            : null;
+    final reducedPrice =
+        kind == _FeaturedKind.promo ? product.promoPrice : null;
     final imageUrl = product.image?.medium ?? product.image?.thumb;
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () => _openDetail(context),
       child: Container(
-        width: 130,
-        margin: const EdgeInsets.only(right: 10),
+        height: 100,
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -628,14 +720,14 @@ class _FeaturedProductCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Container(
-                height: 90,
-                width: double.infinity,
+                width: 84,
+                height: 84,
                 color: Colors.grey.shade100,
                 alignment: Alignment.center,
                 child: imageUrl == null
@@ -648,36 +740,44 @@ class _FeaturedProductCard extends StatelessWidget {
                       ),
               ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              product.name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  if (reducedPrice != null && product.price != null) ...[
+                    Text(
+                      _formatPrice(product.price!),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                    Text(
+                      _formatPrice(reducedPrice),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: accentColor,
+                      ),
+                    ),
+                  ] else if (product.price != null)
+                    Text(
+                      _formatPrice(product.price!),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                ],
+              ),
             ),
-            const Spacer(),
-            if (reducedPrice != null && product.price != null) ...[
-              Text(
-                _formatPrice(product.price!),
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey,
-                  decoration: TextDecoration.lineThrough,
-                ),
-              ),
-              Text(
-                _formatPrice(reducedPrice),
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: accentColor,
-                ),
-              ),
-            ] else if (product.price != null)
-              Text(
-                _formatPrice(product.price!),
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-              ),
           ],
         ),
       ),
