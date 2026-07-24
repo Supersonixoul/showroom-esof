@@ -295,4 +295,63 @@ export class CatalogService {
       images: product.images.map((image) => buildImageVariants(image.url)),
     };
   }
+
+  // ---- Produits mis en avant (accueil mobile/TV) — public, lecture seule ----
+
+  /**
+   * Nouveautés / promotions / soldes, max 10 par bloc, triés du plus
+   * récemment modifié au plus ancien. Public (mêmes règles de visibilité
+   * en cascade que le reste du catalogue — catégorie/ancêtre masqué exclu).
+   */
+  async getFeaturedProducts() {
+    const visibleCategoryIds = await this.getVisibleCategoryIds();
+    const baseWhere = {
+      isActive: true,
+      categoryId: { in: Array.from(visibleCategoryIds) },
+    };
+    const include = {
+      brand: true,
+      category: true,
+      images: { orderBy: { position: 'asc' as const }, take: 1 },
+    };
+
+    const [newProducts, promotions, sales] = await Promise.all([
+      this.prisma.product.findMany({
+        where: { ...baseWhere, isNew: true },
+        include,
+        orderBy: { updatedAt: 'desc' },
+        take: 10,
+      }),
+      this.prisma.product.findMany({
+        where: { ...baseWhere, onPromotion: true },
+        include,
+        orderBy: { updatedAt: 'desc' },
+        take: 10,
+      }),
+      this.prisma.product.findMany({
+        where: { ...baseWhere, onSale: true },
+        include,
+        orderBy: { updatedAt: 'desc' },
+        take: 10,
+      }),
+    ]);
+
+    const map = (product: (typeof newProducts)[number]) => ({
+      id: product.id,
+      name: product.name,
+      reference: product.reference,
+      price: product.price,
+      promoPrice: product.promoPrice,
+      salePrice: product.salePrice,
+      image: product.images[0] ? buildImageVariants(product.images[0].url) : null,
+      brand: product.brand ? { id: product.brand.id, name: product.brand.name } : null,
+      category: { id: product.category.id, name: product.category.name },
+    });
+
+    return {
+      newProducts: newProducts.map(map),
+      promotions: promotions.map(map),
+      sales: sales.map(map),
+    };
+  }
 }

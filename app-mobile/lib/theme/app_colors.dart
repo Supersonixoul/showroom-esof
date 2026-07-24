@@ -11,4 +11,10 @@ class AppColors {
   static const Color background = Color(0xFFF7F9FC);
 
   static const List<Color> heroGradient = [navy, blueAccent];
+
+  // Blocs "Mis en avant" (page d'accueil) — mêmes teintes que les badges
+  // de l'admin (nouveau/promo/solde).
+  static const Color featuredNew = Color(0xFF2E8B57);
+  static const Color featuredPromo = Color(0xFFE08A1E);
+  static const Color featuredSale = Color(0xFFC0392B);
 }

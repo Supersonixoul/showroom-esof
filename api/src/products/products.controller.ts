@@ -20,6 +20,7 @@ import { CreateProductSpecDto } from './dto/create-product-spec.dto';
 import { CreateProductImageDto } from './dto/create-product-image.dto';
 import { MoveProductDto } from './dto/move-product.dto';
 import { SetVisibilityDto } from './dto/set-visibility.dto';
+import { UpdateProductStatusDto } from './dto/update-product-status.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -71,6 +72,14 @@ export class ProductsController {
     @Body() dto: SetVisibilityDto,
   ) {
     return this.productsService.setVisibility(id, dto.isActive);
+  }
+
+  @Patch(':id/status')
+  updateStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateProductStatusDto,
+  ) {
+    return this.productsService.updateStatus(id, dto);
   }
 
   @Post(':id/specs')

@@ -42,4 +42,16 @@ class ApiService {
       syncedAt: data['syncedAt'] as String,
     );
   }
+
+  /// Produits mis en avant (nouveautés/promos/soldes) pour le carrousel de
+  /// la page d'accueil. Pas de mise en cache locale : appel simple, l'appelant
+  /// doit masquer silencieusement la section en cas d'échec réseau.
+  Future<FeaturedProducts> fetchFeaturedProducts() async {
+    final response = await http.get(Uri.parse('$baseUrl/catalog/featured'));
+    if (response.statusCode != 200) {
+      throw Exception('Erreur API produits mis en avant: ${response.statusCode}');
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return FeaturedProducts.fromJson(data);
+  }
 }

@@ -10,6 +10,7 @@ import { FindProductsQueryDto } from './dto/find-products-query.dto';
 import { CreateProductSpecDto } from './dto/create-product-spec.dto';
 import { CreateProductImageDto } from './dto/create-product-image.dto';
 import { MoveProductDto } from './dto/move-product.dto';
+import { UpdateProductStatusDto } from './dto/update-product-status.dto';
 import { buildImageVariants } from './image-variants.util';
 
 @Injectable()
@@ -195,6 +196,61 @@ export class ProductsService {
   async setVisibility(id: string, isActive: boolean) {
     await this.findOne(id);
     return this.prisma.product.update({ where: { id }, data: { isActive } });
+  }
+
+  /**
+   * Met à jour les statuts de mise en avant (nouveau / promo / solde) —
+   * voir catalog.service.ts `getFeaturedProducts` pour l'endpoint public
+   * consommé par les apps. Règles :
+   * - `onPromotion` et `onSale` sont mutuellement exclusifs.
+   * - Quand `onPromotion`/`onSale` est (ou reste) actif, le prix réduit
+   *   correspondant est obligatoire et doit être strictement inférieur au
+   *   prix normal du produit.
+   * - Quand `onPromotion`/`onSale` est désactivé, le prix réduit
+   *   correspondant est remis à `null`.
+   */
+  async updateStatus(id: string, dto: UpdateProductStatusDto) {
+    const product = await this.prisma.product.findUnique({ where: { id } });
+    if (!product) {
+      throw new NotFoundException(`Produit ${id} introuvable`);
+    }
+
+    const isNew = dto.isNew ?? product.isNew;
+    const onPromotion = dto.onPromotion ?? product.onPromotion;
+    const onSale = dto.onSale ?? product.onSale;
+
+    if (onPromotion && onSale) {
+      throw new BadRequestException(
+        'Un produit ne peut pas être à la fois en promotion et en solde',
+      );
+    }
+
+    const normalPrice = product.price != null ? Number(product.price) : null;
+
+    const resolveReducedPrice = (
+      active: boolean,
+      provided: number | null | undefined,
+      current: unknown,
+      label: string,
+    ): number | null => {
+      if (!active) return null;
+      const candidate = provided !== undefined ? provided : current != null ? Number(current) : null;
+      if (candidate == null) {
+        throw new BadRequestException(`Le prix ${label} est obligatoire quand le produit est ${label === 'promo' ? 'en promotion' : 'en solde'}`);
+      }
+      if (normalPrice == null || candidate >= normalPrice) {
+        throw new BadRequestException(`Le prix ${label} doit être strictement inférieur au prix normal du produit`);
+      }
+      return candidate;
+    };
+
+    const promoPrice = resolveReducedPrice(onPromotion, dto.promoPrice, product.promoPrice, 'promo');
+    const salePrice = resolveReducedPrice(onSale, dto.salePrice, product.salePrice, 'solde');
+
+    return this.prisma.product.update({
+      where: { id },
+      data: { isNew, onPromotion, promoPrice, onSale, salePrice },
+    });
   }
 
   // ---- Caractéristiques (specs) ---------------------------------------

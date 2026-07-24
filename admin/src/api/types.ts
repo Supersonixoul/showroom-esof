@@ -75,6 +75,11 @@ export interface Product {
   price?: number | string | null;
   isActive: boolean;
   displayOrder: number;
+  isNew: boolean;
+  onPromotion: boolean;
+  promoPrice?: number | string | null;
+  onSale: boolean;
+  salePrice?: number | string | null;
   brandId?: string | null;
   categoryId: string;
   subcategoryId?: string | null;

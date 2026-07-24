@@ -451,3 +451,44 @@ button.icon-btn {
 tr.row-hidden {
   opacity: 0.55;
 }
+
+.checkbox-row {
+  margin-bottom: 12px;
+}
+
+.checkbox-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  width: auto;
+}
+
+.badge-new,
+.badge-promo,
+.badge-sale {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-right: 4px;
+  color: #fff;
+}
+
+.badge-new {
+  background: #2e8b57;
+}
+
+.badge-promo {
+  background: #e08a1e;
+}
+
+.badge-sale {
+  background: #c0392b;
+}

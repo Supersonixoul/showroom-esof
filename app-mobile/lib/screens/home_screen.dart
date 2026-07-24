@@ -12,6 +12,7 @@ import 'categories_screen.dart';
 import 'characteristics_screen.dart';
 import 'clients_list_screen.dart';
 import 'login_screen.dart';
+import 'product_detail_screen.dart';
 import 'server_settings_screen.dart';
 
 /// Écran d'accueil du mode client (spec §6.2) : en-tête compact (logo +
@@ -45,13 +46,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: const [
+                    _FeaturedSection(),
                     SizedBox(height: 16),
                     _CategoriesSection(),
                     SizedBox(height: 28),
                     _SectionTitle('Nos grandes marques'),
                     Padding(
-                      padding: EdgeInsets.only(bottom: 8),
-                      child: _BrandsCarousel(),
+                      padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: _BrandsGrid(),
                     ),
                   ],
                 ),
@@ -248,7 +250,7 @@ class _CategoriesSectionState extends State<_CategoriesSection> {
           child: GridView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: rows,
               mainAxisSpacing: 4,
               crossAxisSpacing: 8,
@@ -378,132 +380,323 @@ class _BrandAsset {
   const _BrandAsset(this.name, this.assetPath);
 }
 
-/// Carrousel horizontal auto-défilant (lent, continu, en boucle) des logos
-/// des marques partenaires. Se met en pause quand l'utilisateur touche/scroll
-/// manuellement, reprend après un court délai d'inactivité.
-class _BrandsCarousel extends StatefulWidget {
-  const _BrandsCarousel();
+const _kBrands = [
+  _BrandAsset('Legrand', 'assets/images/logo_legrand.png'),
+  _BrandAsset('Schneider', 'assets/images/logo_schneider.png'),
+  _BrandAsset('Philips', 'assets/images/logo_philips.png'),
+  _BrandAsset('Vatan Kablo', 'assets/images/logo_vatan.jpg'),
+  _BrandAsset('Ingelec', 'assets/images/logo_ingelec.png'),
+  _BrandAsset('V-TAC', 'assets/images/logo_vtac.png'),
+];
 
-  @override
-  State<_BrandsCarousel> createState() => _BrandsCarouselState();
-}
-
-class _BrandsCarouselState extends State<_BrandsCarousel> {
-  static const _brands = [
-    _BrandAsset('Legrand', 'assets/images/logo_legrand.png'),
-    _BrandAsset('Schneider', 'assets/images/logo_schneider.png'),
-    _BrandAsset('Philips', 'assets/images/logo_philips.png'),
-    _BrandAsset('Vatan Kablo', 'assets/images/logo_vatan.jpg'),
-    _BrandAsset('Ingelec', 'assets/images/logo_ingelec.png'),
-    _BrandAsset('V-TAC', 'assets/images/logo_vtac.png'),
-  ];
-
-  static const double _cardWidth = 130;
-  static const double _cardMargin = 8;
-  static const double _itemExtent = _cardWidth + _cardMargin * 2;
-  // Grand mais fini (~16 h de défilement continu avant répétition réelle) :
-  // suffisant pour donner l'illusion d'une boucle infinie sans souci de
-  // précision flottante sur `jumpTo`.
-  static const int _loopMultiplier = 2000;
-
-  final ScrollController _controller = ScrollController();
-  Timer? _timer;
-  bool _paused = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(milliseconds: 30), (_) {
-      if (_paused || !_controller.hasClients) return;
-      _controller.jumpTo(_controller.offset + 0.6);
-    });
-  }
-
-  void _pause() => setState(() => _paused = true);
-
-  void _scheduleResume() {
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _paused = false);
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
+/// Grille statique (non défilante) des logos des marques partenaires,
+/// 4 par ligne. Remplace l'ancien carrousel auto-défilant.
+class _BrandsGrid extends StatelessWidget {
+  const _BrandsGrid();
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 50,
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          if (notification is ScrollStartNotification &&
-              notification.dragDetails != null) {
-            _pause();
-          } else if (notification is ScrollEndNotification) {
-            _scheduleResume();
-          }
-          return false;
-        },
-        child: ListView.builder(
-          controller: _controller,
-          scrollDirection: Axis.horizontal,
-          itemExtent: _itemExtent,
-          itemCount: _brands.length * _loopMultiplier,
-          itemBuilder: (context, index) {
-            final brand = _brands[index % _brands.length];
-            return _BrandCard(brand: brand, width: _cardWidth, margin: _cardMargin);
-          },
-        ),
-      ),
+    return GridView.count(
+      crossAxisCount: 4,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      childAspectRatio: 1.6,
+      children: [
+        for (final brand in _kBrands) _BrandCard(brand: brand),
+      ],
     );
   }
 }
 
 class _BrandCard extends StatelessWidget {
   final _BrandAsset brand;
-  final double width;
-  final double margin;
 
-  const _BrandCard({
-    required this.brand,
-    required this.width,
-    required this.margin,
-  });
+  const _BrandCard({required this.brand});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: width,
-      margin: EdgeInsets.symmetric(horizontal: margin),
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Image.asset(
         brand.assetPath,
-        height: 25,
+        height: 20,
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) => Text(
           brand.name,
           textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 11,
+            fontSize: 10,
             color: AppColors.navy,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _FeaturedKind { newProduct, promo, sale }
+
+/// Section « Mis en avant », affichée juste sous la bannière de slogan :
+/// jusqu'à 3 blocs (Nouveautés / Promotions / Soldes) alimentés par
+/// `GET /catalog/featured`. Un bloc n'est affiché que s'il contient des
+/// produits ; la section entière est masquée si les 3 blocs sont vides ou
+/// en cas d'échec réseau (échec silencieux, pas de bannière d'erreur).
+class _FeaturedSection extends StatefulWidget {
+  const _FeaturedSection();
+
+  @override
+  State<_FeaturedSection> createState() => _FeaturedSectionState();
+}
+
+class _FeaturedSectionState extends State<_FeaturedSection> {
+  final ApiService _api = ApiService();
+  bool _loading = true;
+  FeaturedProducts? _data;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final data = await _api.fetchFeaturedProducts();
+      if (mounted) {
+        setState(() {
+          _data = data;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+    final data = _data;
+    if (data == null || data.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (data.newProducts.isNotEmpty)
+          _FeaturedBlock(
+            title: 'Nouveautés',
+            color: AppColors.featuredNew,
+            products: data.newProducts,
+            kind: _FeaturedKind.newProduct,
+          ),
+        if (data.promotions.isNotEmpty)
+          _FeaturedBlock(
+            title: 'Promotions',
+            color: AppColors.featuredPromo,
+            products: data.promotions,
+            kind: _FeaturedKind.promo,
+          ),
+        if (data.sales.isNotEmpty)
+          _FeaturedBlock(
+            title: 'Soldes',
+            color: AppColors.featuredSale,
+            products: data.sales,
+            kind: _FeaturedKind.sale,
+          ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+class _FeaturedBlock extends StatelessWidget {
+  final String title;
+  final Color color;
+  final List<FeaturedProduct> products;
+  final _FeaturedKind kind;
+
+  const _FeaturedBlock({
+    required this.title,
+    required this.color,
+    required this.products,
+    required this.kind,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 190,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: products.length,
+            itemBuilder: (context, index) => _FeaturedProductCard(
+              product: products[index],
+              accentColor: color,
+              kind: kind,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FeaturedProductCard extends StatelessWidget {
+  final FeaturedProduct product;
+  final Color accentColor;
+  final _FeaturedKind kind;
+
+  const _FeaturedProductCard({
+    required this.product,
+    required this.accentColor,
+    required this.kind,
+  });
+
+  String _formatPrice(double price) => '${price.toStringAsFixed(0)} FCFA';
+
+  void _openDetail(BuildContext context) {
+    final match = CatalogRepository.instance.snapshot.value.products
+        .where((p) => p.id == product.id);
+    if (match.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ProductDetailScreen(product: match.first)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reducedPrice = kind == _FeaturedKind.promo
+        ? product.promoPrice
+        : kind == _FeaturedKind.sale
+            ? product.salePrice
+            : null;
+    final imageUrl = product.image?.medium ?? product.image?.thumb;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => _openDetail(context),
+      child: Container(
+        width: 130,
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: accentColor.withOpacity(0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                height: 90,
+                width: double.infinity,
+                color: Colors.grey.shade100,
+                alignment: Alignment.center,
+                child: imageUrl == null
+                    ? Icon(Icons.image_outlined, color: Colors.grey.shade400)
+                    : Image.network(
+                        ApiService.mediaUrl(imageUrl),
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Icon(Icons.image_outlined, color: Colors.grey.shade400),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              product.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+            const Spacer(),
+            if (reducedPrice != null && product.price != null) ...[
+              Text(
+                _formatPrice(product.price!),
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey,
+                  decoration: TextDecoration.lineThrough,
+                ),
+              ),
+              Text(
+                _formatPrice(reducedPrice),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: accentColor,
+                ),
+              ),
+            ] else if (product.price != null)
+              Text(
+                _formatPrice(product.price!),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+          ],
         ),
       ),
     );

@@ -39,4 +39,10 @@ export class CatalogController {
   getCatalogProduct(@Param('id', ParseUUIDPipe) id: string) {
     return this.catalogService.getCatalogProduct(id);
   }
+
+  /// Public — nouveautés/promotions/soldes pour l'accueil mobile/TV.
+  @Get('featured')
+  getFeaturedProducts() {
+    return this.catalogService.getFeaturedProducts();
+  }
 }

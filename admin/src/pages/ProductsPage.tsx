@@ -11,6 +11,7 @@ import {
 } from '../api/client';
 import type { Product } from '../api/types';
 import { ImportProductsDialog } from '../components/ImportProductsDialog';
+import { ProductStatusDialog } from '../components/ProductStatusDialog';
 import { formatPrix } from '../utils/formatPrix';
 
 export function ProductsPage() {
@@ -51,6 +52,7 @@ export function ProductsPage() {
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [statusProductId, setStatusProductId] = useState<string | null>(null);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -378,6 +380,7 @@ export function ProductsPage() {
               <th>Marque</th>
               <th>Catégorie</th>
               <th>Prix</th>
+              <th>Mise en avant</th>
               <th></th>
             </tr>
           </thead>
@@ -445,6 +448,11 @@ export function ProductsPage() {
                 <td className="muted">{categoryName(product.categoryId)}</td>
                 <td>{formatPrix(product.price)}</td>
                 <td>
+                  {product.isNew && <span className="badge-new">Nouveau</span>}
+                  {product.onPromotion && <span className="badge-promo">Promo</span>}
+                  {product.onSale && <span className="badge-sale">Solde</span>}
+                </td>
+                <td>
                   <div className="actions">
                     <button
                       onClick={() =>
@@ -457,6 +465,9 @@ export function ProductsPage() {
                     </button>
                     <button onClick={() => startEdit(product)}>
                       Modifier
+                    </button>
+                    <button onClick={() => setStatusProductId(product.id)}>
+                      Statuts
                     </button>
                     <button
                       className="danger"
@@ -474,7 +485,7 @@ export function ProductsPage() {
             ))}
             {sortedProducts.length === 0 && (
               <tr>
-                <td colSpan={9} className="muted">
+                <td colSpan={10} className="muted">
                   Aucun produit.
                 </td>
               </tr>
@@ -485,6 +496,13 @@ export function ProductsPage() {
 
       {selectedId && <ProductDetail productId={selectedId} />}
       </div>
+
+      {statusProductId && (
+        <ProductStatusDialog
+          product={sortedProducts.find((p) => p.id === statusProductId) as Product}
+          onClose={() => setStatusProductId(null)}
+        />
+      )}
     </div>
   );
 }

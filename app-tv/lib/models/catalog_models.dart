@@ -225,3 +225,133 @@ class CatalogSyncResult {
 
   CatalogSyncResult({required this.snapshot, required this.syncedAt});
 }
+
+/// Variantes optimisées d'une image produit (thumb/medium/full/original),
+/// telles que renvoyées par `buildImageVariants()` côté API.
+class ImageVariants {
+  final String thumb;
+  final String medium;
+  final String full;
+  final String original;
+
+  ImageVariants({
+    required this.thumb,
+    required this.medium,
+    required this.full,
+    required this.original,
+  });
+
+  factory ImageVariants.fromJson(Map<String, dynamic> json) => ImageVariants(
+        thumb: json['thumb'] as String,
+        medium: json['medium'] as String,
+        full: json['full'] as String,
+        original: json['original'] as String,
+      );
+}
+
+/// Produit mis en avant (nouveau / promo / solde), tel que renvoyé par
+/// `GET /catalog/featured`.
+class FeaturedProduct {
+  final String id;
+  final String name;
+  final String? reference;
+  final double? price;
+  final double? promoPrice;
+  final double? salePrice;
+  final ImageVariants? image;
+  final FeaturedBrand? brand;
+  final FeaturedCategory category;
+
+  FeaturedProduct({
+    required this.id,
+    required this.name,
+    this.reference,
+    this.price,
+    this.promoPrice,
+    this.salePrice,
+    this.image,
+    this.brand,
+    required this.category,
+  });
+
+  factory FeaturedProduct.fromJson(Map<String, dynamic> json) {
+    return FeaturedProduct(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      reference: json['reference'] as String?,
+      // Prisma Decimal est sérialisé en JSON sous forme de chaîne.
+      price: json['price'] != null
+          ? double.tryParse(json['price'].toString())
+          : null,
+      promoPrice: json['promoPrice'] != null
+          ? double.tryParse(json['promoPrice'].toString())
+          : null,
+      salePrice: json['salePrice'] != null
+          ? double.tryParse(json['salePrice'].toString())
+          : null,
+      image: json['image'] != null
+          ? ImageVariants.fromJson(json['image'] as Map<String, dynamic>)
+          : null,
+      brand: json['brand'] != null
+          ? FeaturedBrand.fromJson(json['brand'] as Map<String, dynamic>)
+          : null,
+      category:
+          FeaturedCategory.fromJson(json['category'] as Map<String, dynamic>),
+    );
+  }
+}
+
+class FeaturedBrand {
+  final String id;
+  final String name;
+
+  FeaturedBrand({required this.id, required this.name});
+
+  factory FeaturedBrand.fromJson(Map<String, dynamic> json) => FeaturedBrand(
+        id: json['id'] as String,
+        name: json['name'] as String,
+      );
+}
+
+class FeaturedCategory {
+  final String id;
+  final String name;
+
+  FeaturedCategory({required this.id, required this.name});
+
+  factory FeaturedCategory.fromJson(Map<String, dynamic> json) =>
+      FeaturedCategory(
+        id: json['id'] as String,
+        name: json['name'] as String,
+      );
+}
+
+/// Regroupement des 3 blocs de produits mis en avant (spec §Mise en avant).
+class FeaturedProducts {
+  final List<FeaturedProduct> newProducts;
+  final List<FeaturedProduct> promotions;
+  final List<FeaturedProduct> sales;
+
+  const FeaturedProducts({
+    required this.newProducts,
+    required this.promotions,
+    required this.sales,
+  });
+
+  static const empty =
+      FeaturedProducts(newProducts: [], promotions: [], sales: []);
+
+  bool get isEmpty =>
+      newProducts.isEmpty && promotions.isEmpty && sales.isEmpty;
+
+  factory FeaturedProducts.fromJson(Map<String, dynamic> json) {
+    List<FeaturedProduct> parse(String key) => (json[key] as List<dynamic>? ?? [])
+        .map((p) => FeaturedProduct.fromJson(p as Map<String, dynamic>))
+        .toList();
+    return FeaturedProducts(
+      newProducts: parse('newProducts'),
+      promotions: parse('promotions'),
+      sales: parse('sales'),
+    );
+  }
+}

@@ -197,6 +197,20 @@ export const productsApi = {
       method: 'PATCH',
       body: JSON.stringify({ isActive }),
     }),
+  updateStatus: (
+    id: string,
+    data: {
+      isNew?: boolean;
+      onPromotion?: boolean;
+      promoPrice?: number | null;
+      onSale?: boolean;
+      salePrice?: number | null;
+    },
+  ) =>
+    request<Product>(`/products/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 };
 
 // ---- Videos -----------------------------------------------------------
