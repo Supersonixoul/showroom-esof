@@ -2,7 +2,7 @@
     package="com.esof.app_mobile">
    <uses-permission android:name="android.permission.INTERNET" />
    <application
-        android:label="app_mobile"
+        android:label="Showroom ESOF"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
