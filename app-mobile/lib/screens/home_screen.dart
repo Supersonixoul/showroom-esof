@@ -40,7 +40,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           children: [
             const _CompactHeader(),
-            const _SloganBanner(),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -69,7 +68,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
 /// En-tête compact : logo (agrandi) à gauche, accès « plus » (espace
 /// commercial / marques / caractéristiques) et réglages du serveur à droite.
-/// Le slogan est porté par [_SloganBanner], juste en dessous.
 class _CompactHeader extends StatelessWidget {
   const _CompactHeader();
 
@@ -147,41 +145,6 @@ class _CompactHeader extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Bannière fine (dégradé navy → bleu) portant le slogan, juste sous l'en-tête
-/// logo. Ne défile pas avec le contenu.
-class _SloganBanner extends StatelessWidget {
-  const _SloganBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: AppColors.heroGradient,
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-      ),
-      child: const Text(
-        "Distributeur agréé d'équipements électriques de grandes marques",
-        textAlign: TextAlign.center,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 12.5,
-          fontWeight: FontWeight.w600,
-          height: 1.2,
-        ),
       ),
     );
   }
