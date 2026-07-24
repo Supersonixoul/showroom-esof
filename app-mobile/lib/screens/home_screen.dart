@@ -281,63 +281,29 @@ const double _kCatalogCardRadius = 12;
 
 /// Carte « Catalogue » : la grille des catégories encadrée d'un rectangle
 /// arrondi (même rayon que les cartes du carrousel), avec le titre posé sur
-/// la bordure supérieure façon <fieldset><legend>.
-class _CatalogCard extends StatelessWidget {
+/// la bordure supérieure façon <fieldset><legend>. Défilement horizontal
+/// PAR COLONNE (3 colonnes visibles, 4 lignes chacune) piloté par deux
+/// flèches discrètes posées sur les bordures gauche/droite, synchronisées
+/// avec le scroll au doigt.
+class _CatalogCard extends StatefulWidget {
   const _CatalogCard();
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(_kCatalogCardRadius),
-              border: Border.all(color: Colors.grey.shade300, width: 1.2),
-            ),
-            child: const _CategoriesSection(),
-          ),
-          Positioned(
-            left: 16,
-            top: 2,
-            child: Container(
-              color: AppColors.background,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: const Text(
-                'Catalogue',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.navy,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  State<_CatalogCard> createState() => _CatalogCardState();
 }
 
-/// Grille horizontale des catégories sur 4 lignes fixes, défilement
-/// horizontal libre (gauche/droite). Chargée depuis le catalogue déjà
-/// synchronisé via [CatalogRepository] (lui-même basé sur l'adresse de
-/// [ServerConfig]).
-class _CategoriesSection extends StatefulWidget {
-  const _CategoriesSection();
+class _CatalogCardState extends State<_CatalogCard> {
+  static const _rows = 4;
+  static const _columnGap = 8.0;
+  static const _rowGap = 4.0;
+  static const _cardPadding = 14.0;
 
-  @override
-  State<_CategoriesSection> createState() => _CategoriesSectionState();
-}
-
-class _CategoriesSectionState extends State<_CategoriesSection> {
+  final ScrollController _scrollController = ScrollController();
   bool _timedOut = false;
   Timer? _timeoutTimer;
+  int _columnIndex = 0;
+  int _totalColumns = 0;
+  double _columnStep = 0;
 
   @override
   void initState() {
@@ -345,74 +311,215 @@ class _CategoriesSectionState extends State<_CategoriesSection> {
     _timeoutTimer = Timer(const Duration(seconds: 6), () {
       if (mounted) setState(() => _timedOut = true);
     });
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _timeoutTimer?.cancel();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  int get _maxIndex {
+    final max = _totalColumns - _kVisibleCategoryColumns;
+    return max < 0 ? 0 : max;
+  }
+
+  int _clampIndex(int value) {
+    if (value < 0) return 0;
+    if (value > _maxIndex) return _maxIndex;
+    return value;
+  }
+
+  void _onScroll() {
+    if (_columnStep <= 0) return;
+    final index = _clampIndex((_scrollController.offset / _columnStep).round());
+    if (index != _columnIndex) {
+      setState(() => _columnIndex = index);
+    }
+  }
+
+  void _goToColumn(int index) {
+    if (_columnStep <= 0 || !_scrollController.hasClients) return;
+    final clamped = _clampIndex(index);
+    _scrollController.animateTo(
+      clamped * _columnStep,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<CatalogSnapshot>(
-      valueListenable: CatalogRepository.instance.snapshot,
-      builder: (context, catalog, _) {
-        final categories =
-            catalog.categories.where((c) => c.parentId == null).toList();
-        if (categories.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 32),
-            child: Center(
-              child: _timedOut
-                  ? const Text(
-                      "Serveur injoignable — impossible de charger les catégories",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey, fontSize: 13),
-                    )
-                  : const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: LayoutBuilder(
+        builder: (context, outerConstraints) {
+          // Largeur de tuile calculée pour que 3 colonnes soient toujours
+          // entièrement visibles (pas de colonne tronquée).
+          final contentWidth = outerConstraints.maxWidth - 2 * _cardPadding;
+          final tileWidth = (contentWidth -
+                  (_kVisibleCategoryColumns - 1) * _columnGap) /
+              _kVisibleCategoryColumns;
+
+          return ValueListenableBuilder<CatalogSnapshot>(
+            valueListenable: CatalogRepository.instance.snapshot,
+            builder: (context, catalog, _) {
+              final categories = catalog.categories
+                  .where((c) => c.parentId == null)
+                  .toList();
+              final totalColumns =
+                  categories.isEmpty ? 0 : (categories.length / _rows).ceil();
+              _columnStep = tileWidth + _columnGap;
+              _totalColumns = totalColumns;
+              final showArrows = totalColumns > _kVisibleCategoryColumns;
+              final canGoLeft = _columnIndex > 0;
+              final canGoRight = _columnIndex < _maxIndex;
+
+              Widget content;
+              if (categories.isEmpty) {
+                content = Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  child: Center(
+                    child: _timedOut
+                        ? const Text(
+                            "Serveur injoignable — impossible de charger les catégories",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey, fontSize: 13),
+                          )
+                        : const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                  ),
+                );
+              } else {
+                content = SizedBox(
+                  height: _rows * _kCategoryTileHeight,
+                  child: GridView.builder(
+                    controller: _scrollController,
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.zero,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: _rows,
+                      mainAxisSpacing: _columnGap,
+                      crossAxisSpacing: _rowGap,
+                      childAspectRatio: tileWidth / _kCategoryTileHeight,
                     ),
-            ),
-          );
-        }
-        const rows = 4;
-        // En scroll horizontal, l'axe principal (mainAxisSpacing) est
-        // l'espacement HORIZONTAL entre colonnes ; crossAxisSpacing est
-        // l'espacement vertical entre lignes.
-        const columnGap = 8.0;
-        const rowGap = 4.0;
-        return SizedBox(
-          height: rows * _kCategoryTileHeight,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              // Largeur de tuile calculée pour que 3 colonnes soient
-              // toujours entièrement visibles (pas de colonne tronquée),
-              // tout en conservant le défilement horizontal.
-              final tileWidth = (constraints.maxWidth -
-                      (_kVisibleCategoryColumns - 1) * columnGap) /
-                  _kVisibleCategoryColumns;
-              return GridView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.zero,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: rows,
-                  mainAxisSpacing: columnGap,
-                  crossAxisSpacing: rowGap,
-                  childAspectRatio: tileWidth / _kCategoryTileHeight,
-                ),
-                itemCount: categories.length,
-                itemBuilder: (context, index) => _HomeCategoryTile(
-                  category: categories[index],
-                  width: tileWidth,
-                ),
+                    itemCount: categories.length,
+                    itemBuilder: (context, index) => _HomeCategoryTile(
+                      category: categories[index],
+                      width: tileWidth,
+                    ),
+                  ),
+                );
+              }
+
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    padding: const EdgeInsets.all(_cardPadding),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius:
+                          BorderRadius.circular(_kCatalogCardRadius),
+                      border:
+                          Border.all(color: Colors.grey.shade300, width: 1.2),
+                    ),
+                    child: content,
+                  ),
+                  Positioned(
+                    left: 16,
+                    top: 2,
+                    child: Container(
+                      color: AppColors.background,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: const Text(
+                        'Catalogue',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.navy,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (showArrows) ...[
+                    Positioned(
+                      right: -4,
+                      top: 12,
+                      bottom: 0,
+                      child: Center(
+                        child: _CatalogNavArrow(
+                          icon: Icons.chevron_right,
+                          visible: canGoRight,
+                          onTap: () => _goToColumn(_columnIndex + 1),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: -4,
+                      top: 12,
+                      bottom: 0,
+                      child: Center(
+                        child: _CatalogNavArrow(
+                          icon: Icons.chevron_left,
+                          visible: canGoLeft,
+                          onTap: () => _goToColumn(_columnIndex - 1),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               );
             },
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Flèche discrète (cercle semi-transparent) posée à cheval sur la bordure
+/// de la carte « Catalogue » pour avancer/reculer d'une colonne.
+class _CatalogNavArrow extends StatelessWidget {
+  final IconData icon;
+  final bool visible;
+  final VoidCallback onTap;
+
+  const _CatalogNavArrow({
+    required this.icon,
+    required this.visible,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: visible ? 1 : 0,
+      duration: const Duration(milliseconds: 200),
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: Material(
+          color: Colors.white.withOpacity(0.8),
+          shape: const CircleBorder(),
+          elevation: 1.5,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onTap,
+            child: SizedBox(
+              width: 34,
+              height: 34,
+              child: Icon(icon, size: 20, color: AppColors.navy),
+            ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
