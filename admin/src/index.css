@@ -330,6 +330,11 @@ tr:last-child td {
 .actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+td .actions {
+  max-width: 210px;
 }
 
 .reorder-buttons {
