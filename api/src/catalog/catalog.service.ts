@@ -134,7 +134,7 @@ export class CatalogService {
    */
   async getCatalogCategories() {
     const categories = await this.prisma.category.findMany({
-      orderBy: { name: 'asc' },
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
       include: {
         _count: { select: { products: { where: { isActive: true } } } },
         subcategories: {

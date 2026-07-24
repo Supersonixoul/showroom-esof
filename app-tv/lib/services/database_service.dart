@@ -22,7 +22,7 @@ class DatabaseService {
     final path = join(dbPath, 'showroom_tv.db');
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: (db, version) async {
         await _createPromoVideosTable(db);
         await _createCatalogTables(db);
@@ -37,6 +37,15 @@ class DatabaseService {
         }
         if (oldVersion < 4) {
           await db.execute('ALTER TABLE categories ADD COLUMN imageUrl TEXT');
+        }
+        if (oldVersion < 5) {
+          // Les catégories déjà en cache ont displayOrder=0 pour toujours
+          // sans un resync complet : on force un rechargement complet via
+          // /catalog/full au prochain refresh (même logique que app-mobile).
+          await db.execute(
+              'ALTER TABLE categories ADD COLUMN displayOrder INTEGER NOT NULL DEFAULT 0');
+          await db.delete('sync_meta',
+              where: 'key = ?', whereArgs: ['catalogSyncedAt']);
         }
       },
     );
@@ -77,7 +86,8 @@ class DatabaseService {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         parentId TEXT,
-        imageUrl TEXT
+        imageUrl TEXT,
+        displayOrder INTEGER NOT NULL DEFAULT 0
       )
     ''');
     await db.execute('''
@@ -203,7 +213,8 @@ class DatabaseService {
   Future<CatalogSnapshot> getCatalog() async {
     final db = await _database;
     final brandMaps = await db.query('brands');
-    final categoryMaps = await db.query('categories');
+    final categoryMaps =
+        await db.query('categories', orderBy: 'displayOrder ASC, name ASC');
     final productMaps = await db.query('products');
     final specMaps = await db.query('product_specs');
     final imageMaps = await db.query('product_images', orderBy: 'position ASC');

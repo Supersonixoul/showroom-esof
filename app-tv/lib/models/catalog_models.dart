@@ -25,12 +25,14 @@ class Category {
   final String name;
   final String? parentId;
   final String? imageUrl;
+  final int displayOrder;
 
   Category({
     required this.id,
     required this.name,
     this.parentId,
     this.imageUrl,
+    this.displayOrder = 0,
   });
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
@@ -38,6 +40,7 @@ class Category {
         name: json['name'] as String,
         parentId: json['parentId'] as String?,
         imageUrl: json['imageUrl'] as String?,
+        displayOrder: json['displayOrder'] as int? ?? 0,
       );
 
   factory Category.fromMap(Map<String, dynamic> map) => Category(
@@ -45,10 +48,16 @@ class Category {
         name: map['name'] as String,
         parentId: map['parentId'] as String?,
         imageUrl: map['imageUrl'] as String?,
+        displayOrder: (map['displayOrder'] as int?) ?? 0,
       );
 
-  Map<String, dynamic> toMap() =>
-      {'id': id, 'name': name, 'parentId': parentId, 'imageUrl': imageUrl};
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'name': name,
+        'parentId': parentId,
+        'imageUrl': imageUrl,
+        'displayOrder': displayOrder,
+      };
 }
 
 class ProductSpec {
