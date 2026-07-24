@@ -988,8 +988,6 @@ class _FeaturedProductCard extends StatelessWidget {
     required this.kind,
   });
 
-  String _formatPrice(double price) => '${price.toStringAsFixed(0)} FCFA';
-
   void _openDetail(BuildContext context) {
     final match = CatalogRepository.instance.snapshot.value.products
         .where((p) => p.id == product.id);
@@ -1001,8 +999,6 @@ class _FeaturedProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reducedPrice =
-        kind == _FeaturedKind.promo ? product.promoPrice : null;
     final imageUrl = product.image?.medium ?? product.image?.thumb;
 
     return InkWell(
@@ -1056,28 +1052,18 @@ class _FeaturedProductCard extends StatelessWidget {
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 4),
-                  if (reducedPrice != null && product.price != null) ...[
-                    Text(
-                      _formatPrice(product.price!),
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey,
-                        decoration: TextDecoration.lineThrough,
-                      ),
+                  Text(
+                    product.disponible
+                        ? (product.quantiteStock != null
+                            ? 'Disponible (${product.quantiteStock})'
+                            : 'Disponible')
+                        : 'Épuisé',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: product.disponible ? Colors.green.shade700 : Colors.red.shade700,
                     ),
-                    Text(
-                      _formatPrice(reducedPrice),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: accentColor,
-                      ),
-                    ),
-                  ] else if (product.price != null)
-                    Text(
-                      _formatPrice(product.price!),
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
+                  ),
                 ],
               ),
             ),
@@ -1142,8 +1128,6 @@ class _SearchResultCard extends StatelessWidget {
   final FeaturedProduct product;
 
   const _SearchResultCard({required this.product});
-
-  String _formatPrice(double price) => '${price.toStringAsFixed(0)} FCFA';
 
   void _openDetail(BuildContext context) {
     final match = CatalogRepository.instance.snapshot.value.products
@@ -1214,11 +1198,18 @@ class _SearchResultCard extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 4),
-                  if (product.price != null)
-                    Text(
-                      _formatPrice(product.price!),
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  Text(
+                    product.disponible
+                        ? (product.quantiteStock != null
+                            ? 'Disponible (${product.quantiteStock})'
+                            : 'Disponible')
+                        : 'Épuisé',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: product.disponible ? Colors.green.shade700 : Colors.red.shade700,
                     ),
+                  ),
                 ],
               ),
             ),

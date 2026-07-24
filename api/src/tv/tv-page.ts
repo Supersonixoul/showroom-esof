@@ -414,11 +414,16 @@ export const TV_PAGE_HTML = `<!doctype html>
     color: #6b6375;
     margin-top: 4px;
   }
-  .prod-price {
+  .prod-availability {
     font-size: 24px;
-    color: #1a1a1a;
     margin-top: 6px;
     font-weight: bold;
+  }
+  .prod-availability.available {
+    color: #2e7d32;
+  }
+  .prod-availability.unavailable {
+    color: #c62828;
   }
 
   #cat-sub-chips,
@@ -543,11 +548,16 @@ export const TV_PAGE_HTML = `<!doctype html>
     opacity: 0.75;
     margin-bottom: 8px;
   }
-  #cat-detail-price {
+  #cat-detail-availability {
     font-size: 30px;
-    color: #ffcc00;
     font-weight: bold;
     margin: 16px 0;
+  }
+  #cat-detail-availability.available {
+    color: #66bb6a;
+  }
+  #cat-detail-availability.unavailable {
+    color: #ef5350;
   }
   #cat-detail-desc {
     font-size: 24px;
@@ -610,7 +620,7 @@ export const TV_PAGE_HTML = `<!doctype html>
         <h1 id="cat-detail-name"></h1>
         <div id="cat-detail-category"></div>
         <div id="cat-detail-ref"></div>
-        <div id="cat-detail-price"></div>
+        <div id="cat-detail-availability"></div>
         <p id="cat-detail-desc"></p>
       </div>
     </div>

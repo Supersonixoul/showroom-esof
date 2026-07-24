@@ -108,6 +108,15 @@ model Product {
   onSale      Boolean  @default(false) @map("on_sale")
   salePrice   Decimal? @map("sale_price") @db.Decimal(12, 2)
 
+  /// Stock (gestion interne, non liée au prix) — remplace l'affichage du
+  /// prix côté public par un badge de disponibilité (voir catalog.service.ts
+  /// `toPublicProduct`). `quantiteStock` : quantité en stock, gérée par
+  /// l'admin. `afficherQuantite` : si vrai, la quantité exacte est exposée
+  /// aux apps publiques en plus du badge Disponible/Épuisé ; sinon seul le
+  /// badge est renvoyé.
+  quantiteStock    Int     @default(0) @map("quantite_stock")
+  afficherQuantite Boolean @default(false) @map("afficher_quantite")
+
   brandId    String?  @map("brand_id") @db.Uuid
   brand      Brand?   @relation(fields: [brandId], references: [id])
   categoryId String   @map("category_id") @db.Uuid

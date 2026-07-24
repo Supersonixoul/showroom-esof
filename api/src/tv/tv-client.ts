@@ -59,7 +59,7 @@ export const TV_CLIENT_JS = `(function () {
   var catDetailName = document.getElementById('cat-detail-name');
   var catDetailCategory = document.getElementById('cat-detail-category');
   var catDetailRef = document.getElementById('cat-detail-ref');
-  var catDetailPrice = document.getElementById('cat-detail-price');
+  var catDetailAvailability = document.getElementById('cat-detail-availability');
   var catDetailDesc = document.getElementById('cat-detail-desc');
   var debugPanel = document.getElementById('debug-panel');
 
@@ -484,19 +484,17 @@ export const TV_CLIENT_JS = `(function () {
     imgEl.src = url || PLACEHOLDER_IMG;
   }
 
-  // Le prix est optionnel côté schéma : libellé de repli si absent. Les
-  // Decimal Prisma arrivent en JSON sous forme de chaîne (ex. "49.99").
-  function formatPriceLabel(price) {
-    if (price === null || price === undefined || price === '') {
-      return 'Prix en magasin';
+  // Le prix n'est jamais exposé par l'API publique (voir catalog.service.ts
+  // \`toPublicProduct\`) : seul un badge de disponibilité est affiché, avec la
+  // quantité exacte en plus si le produit a \`afficherQuantite = true\`.
+  function formatAvailabilityLabel(p) {
+    if (p.disponible) {
+      if (p.quantiteStock !== undefined && p.quantiteStock !== null) {
+        return { text: 'Disponible (' + p.quantiteStock + ')', available: true };
+      }
+      return { text: 'Disponible', available: true };
     }
-    var num = Number(price);
-    if (!isFinite(num)) {
-      return 'Prix en magasin';
-    }
-    var rounded = Math.round(num);
-    var str = String(rounded).replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ');
-    return str + ' F';
+    return { text: 'Épuisé', available: false };
   }
 
   /**
@@ -921,12 +919,14 @@ export const TV_CLIENT_JS = `(function () {
         var brand = document.createElement('div');
         brand.className = 'prod-brand';
         brand.textContent = p.brand || '';
-        var price = document.createElement('div');
-        price.className = 'prod-price';
-        price.textContent = formatPriceLabel(p.price);
+        var availability = document.createElement('div');
+        var availabilityInfo = formatAvailabilityLabel(p);
+        availability.className =
+          'prod-availability ' + (availabilityInfo.available ? 'available' : 'unavailable');
+        availability.textContent = availabilityInfo.text;
         info.appendChild(name);
         info.appendChild(brand);
-        info.appendChild(price);
+        info.appendChild(availability);
 
         card.appendChild(photoWrap);
         card.appendChild(info);
@@ -1156,7 +1156,10 @@ export const TV_CLIENT_JS = `(function () {
     catDetailName.textContent = p.name;
     catDetailCategory.textContent = p.category.name;
     catDetailRef.textContent = p.reference ? 'Réf. ' + p.reference : '';
-    catDetailPrice.textContent = formatPriceLabel(p.price);
+    var detailAvailability = formatAvailabilityLabel(p);
+    catDetailAvailability.textContent = detailAvailability.text;
+    catDetailAvailability.className =
+      detailAvailability.available ? 'available' : 'unavailable';
     catDetailDesc.textContent = p.description || '';
 
     var images = p.images || [];

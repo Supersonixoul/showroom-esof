@@ -272,9 +272,8 @@ class FeaturedProduct {
   final String id;
   final String name;
   final String? reference;
-  final double? price;
-  final double? promoPrice;
-  final double? salePrice;
+  final bool disponible;
+  final int? quantiteStock;
   final ImageVariants? image;
   final FeaturedBrand? brand;
   final FeaturedCategory category;
@@ -283,9 +282,8 @@ class FeaturedProduct {
     required this.id,
     required this.name,
     this.reference,
-    this.price,
-    this.promoPrice,
-    this.salePrice,
+    this.disponible = false,
+    this.quantiteStock,
     this.image,
     this.brand,
     required this.category,
@@ -296,16 +294,11 @@ class FeaturedProduct {
       id: json['id'] as String,
       name: json['name'] as String,
       reference: json['reference'] as String?,
-      // Prisma Decimal est sérialisé en JSON sous forme de chaîne.
-      price: json['price'] != null
-          ? double.tryParse(json['price'].toString())
-          : null,
-      promoPrice: json['promoPrice'] != null
-          ? double.tryParse(json['promoPrice'].toString())
-          : null,
-      salePrice: json['salePrice'] != null
-          ? double.tryParse(json['salePrice'].toString())
-          : null,
+      // Le prix n'est jamais renvoyé par l'API publique : `disponible` et
+      // `quantiteStock` (facultatif) le remplacent. Parsing tolérant si
+      // absents.
+      disponible: json['disponible'] as bool? ?? false,
+      quantiteStock: json['quantiteStock'] as int?,
       image: json['image'] != null
           ? ImageVariants.fromJson(json['image'] as Map<String, dynamic>)
           : null,

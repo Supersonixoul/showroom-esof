@@ -80,6 +80,8 @@ export interface Product {
   promoPrice?: number | string | null;
   onSale: boolean;
   salePrice?: number | string | null;
+  quantiteStock: number;
+  afficherQuantite: boolean;
   brandId?: string | null;
   categoryId: string;
   subcategoryId?: string | null;

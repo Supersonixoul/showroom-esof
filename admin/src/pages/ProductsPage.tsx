@@ -30,6 +30,8 @@ export function ProductsPage() {
   const [reference, setReference] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [quantiteStock, setQuantiteStock] = useState('0');
+  const [afficherQuantite, setAfficherQuantite] = useState(false);
   const [brandId, setBrandId] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [subcategoryId, setSubcategoryId] = useState('');
@@ -99,6 +101,8 @@ export function ProductsPage() {
     setReference('');
     setDescription('');
     setPrice('');
+    setQuantiteStock('0');
+    setAfficherQuantite(false);
     setBrandId('');
     setCategoryId('');
     setSubcategoryId('');
@@ -115,6 +119,8 @@ export function ProductsPage() {
     setReference(product.reference ?? '');
     setDescription(product.description ?? '');
     setPrice(product.price != null ? String(product.price) : '');
+    setQuantiteStock(String(product.quantiteStock ?? 0));
+    setAfficherQuantite(product.afficherQuantite ?? false);
     setBrandId(product.brandId ?? '');
     setCategoryId(product.categoryId);
     setSubcategoryId(product.subcategoryId ?? '');
@@ -141,6 +147,8 @@ export function ProductsPage() {
       reference: reference || undefined,
       description: description || undefined,
       price: price !== '' ? Number(price) : undefined,
+      quantiteStock: quantiteStock !== '' ? Number(quantiteStock) : undefined,
+      afficherQuantite,
       brandId: brandId || null,
       categoryId,
       subcategoryId: subcategoryId || null,
@@ -327,6 +335,28 @@ export function ProductsPage() {
         </div>
         <div className="form-row">
           <label>
+            Quantité en stock
+            <input
+              type="number"
+              step="1"
+              min="0"
+              value={quantiteStock}
+              onChange={(e) => setQuantiteStock(e.target.value)}
+            />
+          </label>
+          <div className="checkbox-row">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={afficherQuantite}
+                onChange={(e) => setAfficherQuantite(e.target.checked)}
+              />
+              Afficher la quantité exacte aux apps publiques
+            </label>
+          </div>
+        </div>
+        <div className="form-row">
+          <label>
             Image
             <div className="actions" style={{ alignItems: 'center' }}>
               {imagePreview && (
@@ -380,6 +410,7 @@ export function ProductsPage() {
               <th>Marque</th>
               <th>Catégorie</th>
               <th>Prix</th>
+              <th>Stock</th>
               <th>Mise en avant</th>
               <th></th>
             </tr>
@@ -448,6 +479,16 @@ export function ProductsPage() {
                 <td className="muted">{categoryName(product.categoryId)}</td>
                 <td>{formatPrix(product.price)}</td>
                 <td>
+                  {product.quantiteStock > 0 ? (
+                    <span className="badge-new">Disponible</span>
+                  ) : (
+                    <span className="badge-sale">Épuisé</span>
+                  )}
+                  {product.afficherQuantite && (
+                    <span className="muted"> ({product.quantiteStock})</span>
+                  )}
+                </td>
+                <td>
                   {product.isNew && <span className="badge-new">Nouveau</span>}
                   {product.onPromotion && <span className="badge-promo">Promo</span>}
                   {product.onSale && <span className="badge-sale">Solde</span>}
@@ -485,7 +526,7 @@ export function ProductsPage() {
             ))}
             {sortedProducts.length === 0 && (
               <tr>
-                <td colSpan={10} className="muted">
+                <td colSpan={11} className="muted">
                   Aucun produit.
                 </td>
               </tr>

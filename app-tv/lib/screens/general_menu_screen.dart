@@ -592,7 +592,6 @@ class _FeaturedCombinedCarouselState extends State<_FeaturedCombinedCarousel> {
                       product: entry.product,
                       accentColor:
                           entry.kind == _FeaturedKind.promo ? _promoColor : _newColor,
-                      kind: entry.kind,
                     ),
                   );
                 },
@@ -609,15 +608,11 @@ class _FeaturedCombinedCarouselState extends State<_FeaturedCombinedCarousel> {
 class _FeaturedProductCard extends StatelessWidget {
   final FeaturedProduct product;
   final Color accentColor;
-  final _FeaturedKind kind;
 
   const _FeaturedProductCard({
     required this.product,
     required this.accentColor,
-    required this.kind,
   });
-
-  String _formatPrice(double price) => '${price.toStringAsFixed(0)} FCFA';
 
   void _openDetail(BuildContext context) {
     final match = CatalogRepository.instance.snapshot.value.products
@@ -630,7 +625,6 @@ class _FeaturedProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reducedPrice = kind == _FeaturedKind.promo ? product.promoPrice : null;
     final imageUrl = product.image?.medium ?? product.image?.thumb;
 
     return TvFocusable(
@@ -683,26 +677,20 @@ class _FeaturedProductCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  if (reducedPrice != null && product.price != null) ...[
-                    Text(
-                      _formatPrice(product.price!),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.white54,
-                        decoration: TextDecoration.lineThrough,
-                      ),
+                  Text(
+                    product.disponible
+                        ? (product.quantiteStock != null
+                            ? 'Disponible (${product.quantiteStock})'
+                            : 'Disponible')
+                        : 'Épuisé',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: product.disponible
+                          ? Colors.greenAccent.shade400
+                          : Colors.redAccent.shade200,
                     ),
-                    Text(
-                      _formatPrice(reducedPrice),
-                      style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold, color: accentColor),
-                    ),
-                  ] else if (product.price != null)
-                    Text(
-                      _formatPrice(product.price!),
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
+                  ),
                 ],
               ),
             ),

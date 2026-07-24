@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -31,6 +32,19 @@ export class CreateProductDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  /** Quantité en stock — gérée uniquement côté admin (voir catalog.service.ts
+   * `toPublicProduct` pour le badge de disponibilité exposé au public). */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  quantiteStock?: number;
+
+  /** Si vrai, `quantiteStock` est exposé tel quel aux apps publiques en plus
+   * du badge Disponible/Épuisé. */
+  @IsOptional()
+  @IsBoolean()
+  afficherQuantite?: boolean;
 
   @IsOptional()
   @IsUUID()

@@ -21,7 +21,7 @@ class DatabaseService {
     final path = join(dbPath, 'showroom_mobile.db');
     return openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE IF NOT EXISTS brands (
@@ -45,7 +45,8 @@ class DatabaseService {
             name TEXT NOT NULL,
             reference TEXT,
             description TEXT,
-            price REAL,
+            disponible INTEGER NOT NULL DEFAULT 0,
+            quantiteStock INTEGER,
             isActive INTEGER NOT NULL,
             brandId TEXT,
             categoryId TEXT NOT NULL
@@ -113,6 +114,29 @@ class DatabaseService {
           // valeur par défaut (0) pour toujours sans un resync complet.
           await db.execute(
               'ALTER TABLE categories ADD COLUMN displayOrder INTEGER NOT NULL DEFAULT 0');
+          await db.delete('sync_meta',
+              where: 'key = ?', whereArgs: ['catalogSyncedAt']);
+        }
+        if (oldVersion < 7) {
+          // Le prix n'est plus exposé par l'API publique (remplacé par un
+          // badge de disponibilité) : `price` est retiré, `disponible` et
+          // `quantiteStock` ajoutés. SQLite ne permet pas de retirer une
+          // colonne par ALTER TABLE : la table est recréée, et le curseur de
+          // sync réinitialisé pour forcer un rechargement complet.
+          await db.execute('DROP TABLE IF EXISTS products');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS products (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              reference TEXT,
+              description TEXT,
+              disponible INTEGER NOT NULL DEFAULT 0,
+              quantiteStock INTEGER,
+              isActive INTEGER NOT NULL,
+              brandId TEXT,
+              categoryId TEXT NOT NULL
+            )
+          ''');
           await db.delete('sync_meta',
               where: 'key = ?', whereArgs: ['catalogSyncedAt']);
         }

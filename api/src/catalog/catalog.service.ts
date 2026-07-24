@@ -40,6 +40,25 @@ export class CatalogService {
     return this.computeVisibleCategoryIds(categories);
   }
 
+  /**
+   * Convertit un produit (ligne Prisma ou objet déjà partiellement mappé) en
+   * payload public : `price`/`promoPrice`/`salePrice` ne sont JAMAIS exposés
+   * côté public (décision métier concurrentielle), remplacés par un badge de
+   * disponibilité `disponible` (stock > 0) et, uniquement si le produit a
+   * `afficherQuantite = true`, la quantité exacte `quantiteStock`.
+   */
+  private toPublicProduct<T extends { quantiteStock: number; afficherQuantite: boolean }>(
+    product: T,
+  ) {
+    const { price, promoPrice, salePrice, quantiteStock, afficherQuantite, ...rest } =
+      product as T & { price?: unknown; promoPrice?: unknown; salePrice?: unknown };
+    return {
+      ...rest,
+      disponible: quantiteStock > 0,
+      ...(afficherQuantite ? { quantiteStock } : {}),
+    };
+  }
+
   /** Catalogue complet — utilisé lors de la première installation d'une app. */
   async getFull() {
     const [brands, allCategories, promoVideos] = await Promise.all([
@@ -62,7 +81,7 @@ export class CatalogService {
       syncedAt: new Date().toISOString(),
       brands,
       categories,
-      products,
+      products: products.map((product) => this.toPublicProduct(product)),
       promoVideos,
     };
   }
@@ -118,7 +137,7 @@ export class CatalogService {
       syncedAt: new Date().toISOString(),
       brands,
       categories,
-      products,
+      products: products.map((product) => this.toPublicProduct(product)),
       promoVideos,
     };
   }
@@ -241,7 +260,8 @@ export class CatalogService {
         id: product.id,
         name: product.name,
         brand: product.brand ? product.brand.name : null,
-        price: product.price,
+        disponible: product.quantiteStock > 0,
+        ...(product.afficherQuantite ? { quantiteStock: product.quantiteStock } : {}),
         // Kiosque TV (1080p) : on expose les 3 variantes, le client TV
         // utilise systématiquement "full" pour un rendu net (voir mission
         // qualité d'affichage catalogue produits).
@@ -282,7 +302,8 @@ export class CatalogService {
       name: product.name,
       reference: product.reference,
       description: product.description,
-      price: product.price,
+      disponible: product.quantiteStock > 0,
+      ...(product.afficherQuantite ? { quantiteStock: product.quantiteStock } : {}),
       brand: product.brand
         ? {
             id: product.brand.id,
@@ -340,9 +361,8 @@ export class CatalogService {
       id: product.id,
       name: product.name,
       reference: product.reference,
-      price: product.price,
-      promoPrice: product.promoPrice,
-      salePrice: product.salePrice,
+      disponible: product.quantiteStock > 0,
+      ...(product.afficherQuantite ? { quantiteStock: product.quantiteStock } : {}),
       image: product.images[0] ? buildImageVariants(product.images[0].url) : null,
       brand: product.brand ? { id: product.brand.id, name: product.brand.name } : null,
       category: { id: product.category.id, name: product.category.name },
@@ -384,9 +404,8 @@ export class CatalogService {
       id: product.id,
       name: product.name,
       reference: product.reference,
-      price: product.price,
-      promoPrice: product.promoPrice,
-      salePrice: product.salePrice,
+      disponible: product.quantiteStock > 0,
+      ...(product.afficherQuantite ? { quantiteStock: product.quantiteStock } : {}),
       image: product.images[0] ? buildImageVariants(product.images[0].url) : null,
       brand: product.brand ? { id: product.brand.id, name: product.brand.name } : null,
       category: { id: product.category.id, name: product.category.name },

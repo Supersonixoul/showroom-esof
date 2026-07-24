@@ -75,16 +75,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
               const SizedBox(height: 8),
             ],
-            if (product.price != null) ...[
-              Text(
-                '${product.price!.toStringAsFixed(0)} FCFA',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+            Text(
+              product.disponible
+                  ? (product.quantiteStock != null
+                      ? 'Disponible (${product.quantiteStock})'
+                      : 'Disponible')
+                  : 'Épuisé',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: product.disponible ? Colors.green.shade700 : Colors.red.shade700,
               ),
-              const SizedBox(height: 8),
-            ],
+            ),
+            const SizedBox(height: 8),
             if (product.description != null) ...[
               Text(product.description!, style: const TextStyle(fontSize: 16)),
               const SizedBox(height: 24),
