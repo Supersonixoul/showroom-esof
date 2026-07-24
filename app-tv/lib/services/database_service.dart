@@ -22,7 +22,7 @@ class DatabaseService {
     final path = join(dbPath, 'showroom_tv.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await _createPromoVideosTable(db);
         await _createCatalogTables(db);
@@ -34,6 +34,9 @@ class DatabaseService {
         }
         if (oldVersion < 3) {
           await _createSyncMetaTable(db);
+        }
+        if (oldVersion < 4) {
+          await db.execute('ALTER TABLE categories ADD COLUMN imageUrl TEXT');
         }
       },
     );
@@ -73,7 +76,8 @@ class DatabaseService {
       CREATE TABLE IF NOT EXISTS categories (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
-        parentId TEXT
+        parentId TEXT,
+        imageUrl TEXT
       )
     ''');
     await db.execute('''
