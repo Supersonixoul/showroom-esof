@@ -151,7 +151,6 @@ class _CompactHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
       padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
       decoration: BoxDecoration(
         color: Colors.white,
