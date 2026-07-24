@@ -288,68 +288,74 @@ class _FeaturedSectionState extends State<_FeaturedSection> {
     }
     final data = _data;
     if (data == null || data.isEmpty) return const SizedBox.shrink();
+
+    final items = <Widget>[];
+    void addGroup(String title, Color color, List<FeaturedProduct> products,
+        _FeaturedKind kind) {
+      if (products.isEmpty) return;
+      items.add(_FeaturedGroupLabel(title: title, color: color));
+      items.addAll(products.map((p) => _FeaturedProductCard(
+            product: p,
+            accentColor: color,
+            kind: kind,
+          )));
+    }
+
+    addGroup('Nouveautés', const Color(0xFF2E8B57), data.newProducts,
+        _FeaturedKind.newProduct);
+    addGroup('Promotions', const Color(0xFFE08A1E), data.promotions,
+        _FeaturedKind.promo);
+    addGroup('Soldes', const Color(0xFFC0392B), data.sales,
+        _FeaturedKind.sale);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (data.newProducts.isNotEmpty)
-          _FeaturedBlock(
-            title: 'Nouveautés',
-            color: const Color(0xFF2E8B57),
-            products: data.newProducts,
-            kind: _FeaturedKind.newProduct,
-          ),
-        if (data.promotions.isNotEmpty)
-          _FeaturedBlock(
-            title: 'Promotions',
-            color: const Color(0xFFE08A1E),
-            products: data.promotions,
-            kind: _FeaturedKind.promo,
-          ),
-        if (data.sales.isNotEmpty)
-          _FeaturedBlock(
-            title: 'Soldes',
-            color: const Color(0xFFC0392B),
-            products: data.sales,
-            kind: _FeaturedKind.sale,
-          ),
-      ],
-    );
-  }
-}
-
-class _FeaturedBlock extends StatelessWidget {
-  final String title;
-  final Color color;
-  final List<FeaturedProduct> products;
-  final _FeaturedKind kind;
-
-  const _FeaturedBlock({
-    required this.title,
-    required this.color,
-    required this.products,
-    required this.kind,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _SectionHeading(title: title, color: color),
+        const _SectionHeading(title: 'Mis en avant'),
         SizedBox(
           height: 250,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: products.length,
-            itemBuilder: (context, index) => _FeaturedProductCard(
-              product: products[index],
-              accentColor: color,
-              kind: kind,
-            ),
+            itemCount: items.length,
+            itemBuilder: (context, index) => items[index],
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Étiquette colorée signalant le début d'un groupe (Nouveautés/Promotions/
+/// Soldes) au sein du carrousel horizontal unique "Mis en avant".
+class _FeaturedGroupLabel extends StatelessWidget {
+  final String title;
+  final Color color;
+
+  const _FeaturedGroupLabel({required this.title, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 70,
+      margin: const EdgeInsets.only(right: 16),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      alignment: Alignment.center,
+      child: RotatedBox(
+        quarterTurns: 3,
+        child: Text(
+          title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+      ),
     );
   }
 }
