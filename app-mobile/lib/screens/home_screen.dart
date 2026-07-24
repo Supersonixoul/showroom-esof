@@ -916,7 +916,7 @@ class _FeaturedCombinedCarouselState extends State<_FeaturedCombinedCarousel> {
             clipBehavior: Clip.none,
             children: [
               SizedBox(
-                height: 100,
+                height: 112,
                 child: NotificationListener<ScrollNotification>(
                   onNotification: (notification) {
                     if (notification is ScrollStartNotification &&
@@ -1009,7 +1009,7 @@ class _FeaturedProductCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       onTap: () => _openDetail(context),
       child: Container(
-        height: 100,
+        height: 112,
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: Colors.white,
