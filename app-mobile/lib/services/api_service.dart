@@ -54,4 +54,19 @@ class ApiService {
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     return FeaturedProducts.fromJson(data);
   }
+
+  /// Recherche produit (barre de recherche de l'accueil) : correspondance
+  /// partielle insensible à la casse sur la désignation OU la référence.
+  Future<List<FeaturedProduct>> searchProducts(String query) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/catalog/search').replace(queryParameters: {'q': query}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Erreur API recherche produit: ${response.statusCode}');
+    }
+    final data = jsonDecode(response.body) as List<dynamic>;
+    return data
+        .map((p) => FeaturedProduct.fromJson(p as Map<String, dynamic>))
+        .toList();
+  }
 }

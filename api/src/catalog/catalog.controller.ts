@@ -2,6 +2,7 @@ import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { CatalogService } from './catalog.service';
 import { SyncQueryDto } from './dto/sync-query.dto';
 import { FindCatalogProductsQueryDto } from './dto/find-catalog-products-query.dto';
+import { SearchProductsQueryDto } from './dto/search-products-query.dto';
 
 @Controller('catalog')
 export class CatalogController {
@@ -44,5 +45,11 @@ export class CatalogController {
   @Get('featured')
   getFeaturedProducts() {
     return this.catalogService.getFeaturedProducts();
+  }
+
+  /// Public — recherche produit (désignation OU référence) pour l'accueil mobile.
+  @Get('search')
+  searchProducts(@Query() query: SearchProductsQueryDto) {
+    return this.catalogService.searchProducts(query.q);
   }
 }

@@ -26,6 +26,13 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final ApiService _api = ApiService();
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounce;
+  String _query = '';
+  bool _searchLoading = false;
+  List<FeaturedProduct>? _searchResults;
+
   @override
   void initState() {
     super.initState();
@@ -33,30 +40,91 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    final query = value.trim();
+    setState(() => _query = query);
+    if (query.length < 2) {
+      setState(() {
+        _searchResults = null;
+        _searchLoading = false;
+      });
+      return;
+    }
+    _debounce = Timer(
+      const Duration(milliseconds: 400),
+      () => _runSearch(query),
+    );
+  }
+
+  Future<void> _runSearch(String query) async {
+    setState(() => _searchLoading = true);
+    try {
+      final results = await _api.searchProducts(query);
+      if (!mounted || query != _query) return;
+      setState(() {
+        _searchResults = results;
+        _searchLoading = false;
+      });
+    } catch (_) {
+      if (!mounted || query != _query) return;
+      setState(() {
+        _searchResults = [];
+        _searchLoading = false;
+      });
+    }
+  }
+
+  void _clearSearch() {
+    _debounce?.cancel();
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _searchResults = null;
+      _searchLoading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final showResults = _query.length >= 2;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            const _CompactHeader(),
+            _CompactHeader(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              onClear: _clearSearch,
+            ),
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: const [
-                    _FeaturedSection(),
-                    SizedBox(height: 16),
-                    _CategoriesSection(),
-                    SizedBox(height: 28),
-                    _SectionTitle('Nos grandes marques'),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: _BrandsGrid(),
+              child: showResults
+                  ? _SearchResultsSection(
+                      loading: _searchLoading,
+                      results: _searchResults,
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: const [
+                          _FeaturedSection(),
+                          _CatalogCard(),
+                          SizedBox(height: 28),
+                          _SectionTitle('Nos grandes marques'),
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+                            child: _BrandsGrid(),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-              ),
             ),
             const _Footer(),
           ],
@@ -66,10 +134,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// En-tête compact : logo (agrandi) à gauche, accès « plus » (espace
-/// commercial / marques / caractéristiques) et réglages du serveur à droite.
+/// En-tête compact : logo (agrandi) à gauche, barre de recherche produit,
+/// accès « plus » (espace commercial / marques / caractéristiques) et
+/// réglages du serveur à droite.
 class _CompactHeader extends StatelessWidget {
-  const _CompactHeader();
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  const _CompactHeader({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +178,53 @@ class _CompactHeader extends StatelessWidget {
               ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 10),
+          Expanded(
+            child: SizedBox(
+              height: 42,
+              child: AnimatedBuilder(
+                animation: controller,
+                builder: (context, _) {
+                  return TextField(
+                    controller: controller,
+                    onChanged: onChanged,
+                    textAlignVertical: TextAlignVertical.center,
+                    style: const TextStyle(fontSize: 14),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: 'Rechercher un produit...',
+                      hintStyle: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade500,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        size: 20,
+                        color: Colors.grey,
+                      ),
+                      suffixIcon: controller.text.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(
+                                Icons.clear,
+                                size: 18,
+                                color: Colors.grey,
+                              ),
+                              onPressed: onClear,
+                            ),
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
           PopupMenuButton<int>(
             icon: const Icon(Icons.more_vert, color: AppColors.navy),
             tooltip: 'Plus',
@@ -153,10 +276,58 @@ class _CompactHeader extends StatelessWidget {
 const double _kCategoryTileWidth = 68;
 const double _kCategoryTileHeight = 92;
 const double _kCategoryThumbSize = 52;
+const int _kVisibleCategoryColumns = 3;
+const double _kCatalogCardRadius = 12;
+
+/// Carte « Catalogue » : la grille des catégories encadrée d'un rectangle
+/// arrondi (même rayon que les cartes du carrousel), avec le titre posé sur
+/// la bordure supérieure façon <fieldset><legend>.
+class _CatalogCard extends StatelessWidget {
+  const _CatalogCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(_kCatalogCardRadius),
+              border: Border.all(color: Colors.grey.shade300, width: 1.2),
+            ),
+            child: const _CategoriesSection(),
+          ),
+          Positioned(
+            left: 16,
+            top: 2,
+            child: Container(
+              color: AppColors.background,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: const Text(
+                'Catalogue',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.navy,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// Grille horizontale des catégories sur 4 lignes fixes, défilement
-/// horizontal libre. Chargée depuis le catalogue déjà synchronisé via
-/// [CatalogRepository] (lui-même basé sur l'adresse de [ServerConfig]).
+/// horizontal libre (gauche/droite). Chargée depuis le catalogue déjà
+/// synchronisé via [CatalogRepository] (lui-même basé sur l'adresse de
+/// [ServerConfig]).
 class _CategoriesSection extends StatefulWidget {
   const _CategoriesSection();
 
@@ -208,20 +379,37 @@ class _CategoriesSectionState extends State<_CategoriesSection> {
           );
         }
         const rows = 4;
+        // En scroll horizontal, l'axe principal (mainAxisSpacing) est
+        // l'espacement HORIZONTAL entre colonnes ; crossAxisSpacing est
+        // l'espacement vertical entre lignes.
+        const columnGap = 8.0;
+        const rowGap = 4.0;
         return SizedBox(
           height: rows * _kCategoryTileHeight,
-          child: GridView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: rows,
-              mainAxisSpacing: 4,
-              crossAxisSpacing: 8,
-              childAspectRatio: _kCategoryTileWidth / _kCategoryTileHeight,
-            ),
-            itemCount: categories.length,
-            itemBuilder: (context, index) =>
-                _HomeCategoryTile(category: categories[index]),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Largeur de tuile calculée pour que 3 colonnes soient
+              // toujours entièrement visibles (pas de colonne tronquée),
+              // tout en conservant le défilement horizontal.
+              final tileWidth = (constraints.maxWidth -
+                      (_kVisibleCategoryColumns - 1) * columnGap) /
+                  _kVisibleCategoryColumns;
+              return GridView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.zero,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: rows,
+                  mainAxisSpacing: columnGap,
+                  crossAxisSpacing: rowGap,
+                  childAspectRatio: tileWidth / _kCategoryTileHeight,
+                ),
+                itemCount: categories.length,
+                itemBuilder: (context, index) => _HomeCategoryTile(
+                  category: categories[index],
+                  width: tileWidth,
+                ),
+              );
+            },
           ),
         );
       },
@@ -231,8 +419,9 @@ class _CategoriesSectionState extends State<_CategoriesSection> {
 
 class _HomeCategoryTile extends StatelessWidget {
   final Category category;
+  final double width;
 
-  const _HomeCategoryTile({required this.category});
+  const _HomeCategoryTile({required this.category, this.width = _kCategoryTileWidth});
 
   @override
   Widget build(BuildContext context) {
@@ -247,7 +436,7 @@ class _HomeCategoryTile extends StatelessWidget {
         ),
       ),
       child: SizedBox(
-        width: _kCategoryTileWidth,
+        width: width,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -734,6 +923,147 @@ class _FeaturedProductCard extends StatelessWidget {
                       ),
                     ),
                   ] else if (product.price != null)
+                    Text(
+                      _formatPrice(product.price!),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Résultats de la recherche produit (remplace temporairement le contenu de
+/// la Home pendant que la barre de recherche est active — voir
+/// [_HomeScreenState]). Affiche un indicateur discret pendant le chargement,
+/// un message dédié si la recherche ne retourne rien.
+class _SearchResultsSection extends StatelessWidget {
+  final bool loading;
+  final List<FeaturedProduct>? results;
+
+  const _SearchResultsSection({required this.loading, required this.results});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        Expanded(child: _buildBody()),
+      ],
+    );
+  }
+
+  Widget _buildBody() {
+    final items = results;
+    if (items == null && loading) return const SizedBox.shrink();
+    if (items == null || items.isEmpty) {
+      return const Center(
+        child: Text(
+          'Aucun produit trouvé',
+          style: TextStyle(color: Colors.grey, fontSize: 14),
+        ),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      itemCount: items.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 10),
+      itemBuilder: (context, index) => _SearchResultCard(product: items[index]),
+    );
+  }
+}
+
+/// Carte résultat de recherche, même format paysage que le carrousel mis en
+/// avant : image à gauche, désignation + référence (sous-titre) à droite.
+class _SearchResultCard extends StatelessWidget {
+  final FeaturedProduct product;
+
+  const _SearchResultCard({required this.product});
+
+  String _formatPrice(double price) => '${price.toStringAsFixed(0)} FCFA';
+
+  void _openDetail(BuildContext context) {
+    final match = CatalogRepository.instance.snapshot.value.products
+        .where((p) => p.id == product.id);
+    if (match.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ProductDetailScreen(product: match.first)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = product.image?.medium ?? product.image?.thumb;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => _openDetail(context),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 72,
+                height: 72,
+                color: Colors.grey.shade100,
+                alignment: Alignment.center,
+                child: imageUrl == null
+                    ? Icon(Icons.image_outlined, color: Colors.grey.shade400)
+                    : Image.network(
+                        ApiService.mediaUrl(imageUrl),
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Icon(Icons.image_outlined, color: Colors.grey.shade400),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  if (product.reference != null && product.reference!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      product.reference!,
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  if (product.price != null)
                     Text(
                       _formatPrice(product.price!),
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),

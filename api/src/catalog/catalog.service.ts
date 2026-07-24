@@ -354,4 +354,42 @@ export class CatalogService {
       sales: sales.map(map),
     };
   }
+
+  /**
+   * Recherche produit (accueil mobile) — correspondance partielle insensible
+   * à la casse sur la désignation OU la référence. Mêmes règles de
+   * visibilité en cascade que le reste du catalogue public.
+   */
+  async searchProducts(q: string) {
+    const visibleCategoryIds = await this.getVisibleCategoryIds();
+    const products = await this.prisma.product.findMany({
+      where: {
+        isActive: true,
+        categoryId: { in: Array.from(visibleCategoryIds) },
+        OR: [
+          { name: { contains: q, mode: 'insensitive' } },
+          { reference: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      include: {
+        brand: true,
+        category: true,
+        images: { orderBy: { position: 'asc' }, take: 1 },
+      },
+      orderBy: { name: 'asc' },
+      take: 30,
+    });
+
+    return products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      reference: product.reference,
+      price: product.price,
+      promoPrice: product.promoPrice,
+      salePrice: product.salePrice,
+      image: product.images[0] ? buildImageVariants(product.images[0].url) : null,
+      brand: product.brand ? { id: product.brand.id, name: product.brand.name } : null,
+      category: { id: product.category.id, name: product.category.name },
+    }));
+  }
 }
