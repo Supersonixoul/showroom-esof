@@ -279,6 +279,11 @@ const double _kCategoryThumbSize = 52;
 const int _kVisibleCategoryColumns = 3;
 const double _kCatalogCardRadius = 12;
 
+/// Padding horizontal partagé entre la carte « Catalogue » et le carrousel
+/// « Nouveau »/« Promotion » afin que les deux sections soient parfaitement
+/// alignées (mêmes bords gauche/droit).
+const double kHorizontalPadding = 16;
+
 /// Carte « Catalogue » : la grille des catégories encadrée d'un rectangle
 /// arrondi (même rayon que les cartes du carrousel), avec le titre posé sur
 /// la bordure supérieure façon <fieldset><legend>. Défilement horizontal
@@ -354,7 +359,7 @@ class _CatalogCardState extends State<_CatalogCard> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      padding: const EdgeInsets.fromLTRB(kHorizontalPadding, 4, kHorizontalPadding, 0),
       child: LayoutBuilder(
         builder: (context, outerConstraints) {
           // Largeur de tuile calculée pour que 3 colonnes soient toujours
@@ -434,7 +439,7 @@ class _CatalogCardState extends State<_CatalogCard> {
                     child: content,
                   ),
                   Positioned(
-                    left: 16,
+                    left: kHorizontalPadding,
                     top: 2,
                     child: Container(
                       color: AppColors.background,
@@ -455,7 +460,7 @@ class _CatalogCardState extends State<_CatalogCard> {
                       top: 12,
                       bottom: 0,
                       child: Center(
-                        child: _CatalogNavArrow(
+                        child: _NavArrow(
                           icon: Icons.chevron_right,
                           visible: canGoRight,
                           onTap: () => _goToColumn(_columnIndex + 1),
@@ -467,7 +472,7 @@ class _CatalogCardState extends State<_CatalogCard> {
                       top: 12,
                       bottom: 0,
                       child: Center(
-                        child: _CatalogNavArrow(
+                        child: _NavArrow(
                           icon: Icons.chevron_left,
                           visible: canGoLeft,
                           onTap: () => _goToColumn(_columnIndex - 1),
@@ -485,14 +490,15 @@ class _CatalogCardState extends State<_CatalogCard> {
   }
 }
 
-/// Flèche discrète (cercle semi-transparent) posée à cheval sur la bordure
-/// de la carte « Catalogue » pour avancer/reculer d'une colonne.
-class _CatalogNavArrow extends StatelessWidget {
+/// Flèche discrète (cercle semi-transparent) réutilisée par la carte
+/// « Catalogue » et le carrousel « Nouveau »/« Promotion » pour avancer/
+/// reculer d'un pas (colonne ou carte).
+class _NavArrow extends StatelessWidget {
   final IconData icon;
   final bool visible;
   final VoidCallback onTap;
 
-  const _CatalogNavArrow({
+  const _NavArrow({
     required this.icon,
     required this.visible,
     required this.onTap,
@@ -835,7 +841,7 @@ class _FeaturedCombinedCarouselState extends State<_FeaturedCombinedCarousel> {
   @override
   void initState() {
     super.initState();
-    _controller = PageController(viewportFraction: 0.92);
+    _controller = PageController();
     _startAutoScroll();
   }
 
@@ -859,6 +865,17 @@ class _FeaturedCombinedCarouselState extends State<_FeaturedCombinedCarousel> {
     _resumeTimer = Timer(const Duration(seconds: 5), () {
       if (mounted) _startAutoScroll();
     });
+  }
+
+  void _goToPage(int index) {
+    if (!_controller.hasClients) return;
+    final clamped = index.clamp(0, widget.entries.length - 1);
+    _onManualInteraction();
+    _controller.animateToPage(
+      clamped,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -895,36 +912,64 @@ class _FeaturedCombinedCarouselState extends State<_FeaturedCombinedCarousel> {
         ),
         const SizedBox(height: 6),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: SizedBox(
-            height: 100,
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (notification) {
-                if (notification is ScrollStartNotification &&
-                    notification.dragDetails != null) {
-                  _onManualInteraction();
-                }
-                return false;
-              },
-              child: PageView.builder(
-                controller: _controller,
-                itemCount: widget.entries.length,
-                onPageChanged: (index) => setState(() => _page = index),
-                itemBuilder: (context, index) {
-                  final entry = widget.entries[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: _FeaturedProductCard(
-                      product: entry.product,
-                      accentColor: entry.kind == _FeaturedKind.promo
-                          ? AppColors.featuredPromo
-                          : AppColors.featuredNew,
-                      kind: entry.kind,
-                    ),
-                  );
-                },
+          padding: const EdgeInsets.symmetric(horizontal: kHorizontalPadding),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              SizedBox(
+                height: 100,
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    if (notification is ScrollStartNotification &&
+                        notification.dragDetails != null) {
+                      _onManualInteraction();
+                    }
+                    return false;
+                  },
+                  child: PageView.builder(
+                    controller: _controller,
+                    itemCount: widget.entries.length,
+                    onPageChanged: (index) => setState(() => _page = index),
+                    itemBuilder: (context, index) {
+                      final entry = widget.entries[index];
+                      return _FeaturedProductCard(
+                        product: entry.product,
+                        accentColor: entry.kind == _FeaturedKind.promo
+                            ? AppColors.featuredPromo
+                            : AppColors.featuredNew,
+                        kind: entry.kind,
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
+              if (widget.entries.length > 1) ...[
+                Positioned(
+                  right: -4,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: _NavArrow(
+                      icon: Icons.chevron_right,
+                      visible: _page < widget.entries.length - 1,
+                      onTap: () => _goToPage(_page + 1),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: -4,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: _NavArrow(
+                      icon: Icons.chevron_left,
+                      visible: _page > 0,
+                      onTap: () => _goToPage(_page - 1),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         const SizedBox(height: 8),
