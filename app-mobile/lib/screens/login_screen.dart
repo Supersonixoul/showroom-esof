@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/auth_session.dart';
+import '../widgets/password_field.dart';
 import 'clients_list_screen.dart';
 
 /// Écran de connexion du mode commercial (spec §6.3). Réutilisé tel quel
@@ -85,10 +86,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   decoration: const InputDecoration(labelText: 'Email'),
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                PasswordField(
                   controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Mot de passe'),
+                  labelText: 'Mot de passe',
                   onSubmitted: (_) => _loading ? null : _submit(),
                 ),
                 if (_error != null) ...[

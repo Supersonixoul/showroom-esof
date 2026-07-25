@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/commercial_session.dart';
+import '../widgets/password_field.dart';
 import 'traitement_list_screen.dart';
 
 /// Écran de connexion de la rubrique "Traitement" (compte commercial),
@@ -63,10 +64,9 @@ class _CommercialLoginScreenState extends State<CommercialLoginScreen> {
                   decoration: const InputDecoration(labelText: 'Identifiant'),
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                PasswordField(
                   controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Mot de passe'),
+                  labelText: 'Mot de passe',
                   onSubmitted: (_) => _loading ? null : _submit(),
                 ),
                 if (_error != null) ...[

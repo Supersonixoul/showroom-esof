@@ -333,6 +333,35 @@ tr:last-child td {
   flex-wrap: wrap;
 }
 
+.password-input {
+  position: relative;
+  display: flex;
+}
+
+.password-input input {
+  width: 100%;
+  padding-right: 32px;
+}
+
+.password-input__toggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.password-input__toggle:hover {
+  color: var(--text);
+}
+
 td .actions {
   max-width: 210px;
 }

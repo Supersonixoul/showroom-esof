@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { commerciauxApi } from '../api/client';
 import type { AgentCommercial } from '../api/types';
+import { PasswordInput } from '../components/PasswordInput';
 
 const TELEPHONE_PATTERN = '^\\+226\\d{8}$';
 const TELEPHONE_HELP = 'Format attendu : +226 suivi de 8 chiffres (ex. +22670123456)';
@@ -192,8 +193,7 @@ export function CommerciauxPage() {
               </label>
               <label>
                 Mot de passe {editingId ? '(laisser vide pour ne pas changer)' : '(optionnel)'}
-                <input
-                  type="password"
+                <PasswordInput
                   value={motDePasse}
                   onChange={(e) => setMotDePasse(e.target.value)}
                   placeholder={editingId ? 'Inchangé' : ''}

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/pro_models.dart';
 import '../services/auth_session.dart';
 import '../services/pro_api_service.dart';
+import '../widgets/password_field.dart';
 
 /// Formulaire de création/édition d'un compte Pro (Espace des Pros, admin).
 /// Le mot de passe est laissé vide en édition (placeholder explicite) — s'il
@@ -121,15 +122,12 @@ class _ProfessionnelFormScreenState extends State<ProfessionnelFormScreen> {
               decoration: const InputDecoration(labelText: 'Identifiant *'),
             ),
             const SizedBox(height: 12),
-            TextField(
+            PasswordField(
               controller: _passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: _isEditing ? 'Mot de passe' : 'Mot de passe *',
-                hintText: _isEditing
-                    ? 'Laisser vide pour conserver le mot de passe actuel'
-                    : null,
-              ),
+              labelText: _isEditing ? 'Mot de passe' : 'Mot de passe *',
+              hintText: _isEditing
+                  ? 'Laisser vide pour conserver le mot de passe actuel'
+                  : null,
             ),
             const SizedBox(height: 12),
             TextField(

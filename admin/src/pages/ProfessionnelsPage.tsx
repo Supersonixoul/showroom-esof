@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { professionnelsApi } from '../api/client';
 import type { Professionnel } from '../api/types';
+import { PasswordInput } from '../components/PasswordInput';
 
 function conflictMessage(err: unknown, fallback: string) {
   const message = (err as Error)?.message ?? '';
@@ -167,8 +168,7 @@ export function ProfessionnelsPage() {
               </label>
               <label>
                 Mot de passe
-                <input
-                  type="password"
+                <PasswordInput
                   value={motDePasse}
                   onChange={(e) => setMotDePasse(e.target.value)}
                   placeholder={
