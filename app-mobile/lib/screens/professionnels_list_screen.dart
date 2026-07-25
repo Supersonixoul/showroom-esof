@@ -93,7 +93,7 @@ class _ProfessionnelsListScreenState extends State<ProfessionnelsListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Espace des Pros')),
+      appBar: AppBar(title: const Text('Espace Client')),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(),
         child: const Icon(Icons.add),
@@ -119,7 +119,7 @@ class _ProfessionnelsListScreenState extends State<ProfessionnelsListScreen> {
                 children: const [
                   Padding(
                     padding: EdgeInsets.all(32),
-                    child: Center(child: Text('Aucun professionnel.')),
+                    child: Center(child: Text('Aucun client.')),
                   ),
                 ],
               );

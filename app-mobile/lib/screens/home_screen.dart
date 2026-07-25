@@ -251,7 +251,7 @@ class _CompactHeader extends StatelessWidget {
                   children: const [
                     Icon(Icons.business_center, size: 18),
                     SizedBox(width: 8),
-                    Text('Espace des Pros'),
+                    Text('Espace Client'),
                   ],
                 ),
               ),

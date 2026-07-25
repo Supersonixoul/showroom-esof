@@ -10,7 +10,7 @@ const links = [
   { to: '/products', label: 'Produits' },
   { to: '/videos', label: 'Vidéos' },
   { to: '/commerciaux', label: 'Commerciaux ESOF' },
-  { to: '/professionnels', label: 'Professionnels' },
+  { to: '/professionnels', label: 'Clients' },
 ];
 
 export function Layout() {

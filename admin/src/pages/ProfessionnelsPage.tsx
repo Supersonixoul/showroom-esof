@@ -38,7 +38,7 @@ export function ProfessionnelsPage() {
     mutationFn: professionnelsApi.create,
     onSuccess: () => {
       invalidate();
-      setSuccessMessage('Professionnel créé.');
+      setSuccessMessage('Client créé.');
       resetForm();
     },
   });
@@ -53,7 +53,7 @@ export function ProfessionnelsPage() {
     }) => professionnelsApi.update(id, data),
     onSuccess: () => {
       invalidate();
-      setSuccessMessage('Professionnel modifié.');
+      setSuccessMessage('Client modifié.');
       resetForm();
     },
   });
@@ -62,7 +62,7 @@ export function ProfessionnelsPage() {
     mutationFn: professionnelsApi.remove,
     onSuccess: () => {
       invalidate();
-      setSuccessMessage('Professionnel désactivé.');
+      setSuccessMessage('Client désactivé.');
     },
   });
 
@@ -127,11 +127,11 @@ export function ProfessionnelsPage() {
     <div className="page-fill">
       <div>
         <div className="page-header">
-          <h2>Professionnels</h2>
+          <h2>Clients</h2>
         </div>
 
         {error && (
-          <div className="error-banner">Impossible de charger les professionnels.</div>
+          <div className="error-banner">Impossible de charger les clients.</div>
         )}
         {mutationError && (
           <div className="error-banner">
@@ -147,7 +147,7 @@ export function ProfessionnelsPage() {
 
         <div className="actions">
           <button type="button" className="primary" onClick={openCreateForm}>
-            + Ajouter un professionnel
+            + Ajouter un client
           </button>
         </div>
 
@@ -236,7 +236,7 @@ export function ProfessionnelsPage() {
                         className="danger"
                         disabled={!pro.actif}
                         onClick={() => {
-                          if (confirm(`Désactiver le professionnel "${pro.nom}" ?`)) {
+                          if (confirm(`Désactiver le client "${pro.nom}" ?`)) {
                             removeMutation.mutate(pro.id);
                           }
                         }}
@@ -250,7 +250,7 @@ export function ProfessionnelsPage() {
               {sortedProfessionnels.length === 0 && (
                 <tr>
                   <td colSpan={6} className="muted">
-                    Aucun professionnel.
+                    Aucun client.
                   </td>
                 </tr>
               )}

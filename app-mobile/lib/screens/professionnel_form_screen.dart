@@ -105,7 +105,7 @@ class _ProfessionnelFormScreenState extends State<ProfessionnelFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Modifier le Pro' : 'Nouveau Pro'),
+        title: Text(_isEditing ? 'Modifier le client' : 'Nouveau client'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
