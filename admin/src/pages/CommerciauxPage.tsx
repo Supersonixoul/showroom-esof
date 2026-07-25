@@ -23,6 +23,8 @@ export function CommerciauxPage() {
   const [prenom, setPrenom] = useState('');
   const [telephone1, setTelephone1] = useState('');
   const [telephone2, setTelephone2] = useState('');
+  const [identifiant, setIdentifiant] = useState('');
+  const [motDePasse, setMotDePasse] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -68,6 +70,8 @@ export function CommerciauxPage() {
     setPrenom('');
     setTelephone1('');
     setTelephone2('');
+    setIdentifiant('');
+    setMotDePasse('');
     setEditingId(null);
   }
 
@@ -82,6 +86,8 @@ export function CommerciauxPage() {
     setPrenom(agent.prenom);
     setTelephone1(agent.telephone1);
     setTelephone2(agent.telephone2 ?? '');
+    setIdentifiant(agent.identifiant ?? '');
+    setMotDePasse('');
     setShowForm(true);
   }
 
@@ -92,6 +98,8 @@ export function CommerciauxPage() {
       prenom,
       telephone1,
       telephone2: telephone2 || undefined,
+      identifiant: identifiant || undefined,
+      ...(motDePasse ? { motDePasse } : {}),
     };
     if (editingId) {
       updateMutation.mutate({ id: editingId, data });
@@ -173,6 +181,25 @@ export function CommerciauxPage() {
                   title={TELEPHONE_HELP}
                 />
               </label>
+              <label>
+                Identifiant (rubrique Traitement, optionnel)
+                <input
+                  value={identifiant}
+                  onChange={(e) => setIdentifiant(e.target.value)}
+                  placeholder="ex. jdupont"
+                  autoComplete="off"
+                />
+              </label>
+              <label>
+                Mot de passe {editingId ? '(laisser vide pour ne pas changer)' : '(optionnel)'}
+                <input
+                  type="password"
+                  value={motDePasse}
+                  onChange={(e) => setMotDePasse(e.target.value)}
+                  placeholder={editingId ? 'Inchangé' : ''}
+                  autoComplete="new-password"
+                />
+              </label>
             </div>
             <div className="actions">
               <button type="submit" className="primary" disabled={saving}>
@@ -198,6 +225,7 @@ export function CommerciauxPage() {
                 <th>Téléphone 1</th>
                 <th>Téléphone 2</th>
                 <th>Actif</th>
+                <th>Accès Traitement</th>
                 <th></th>
               </tr>
             </thead>
@@ -209,6 +237,13 @@ export function CommerciauxPage() {
                   <td>{agent.telephone1}</td>
                   <td className="muted">{agent.telephone2 || '—'}</td>
                   <td>{agent.actif ? 'Oui' : 'Non'}</td>
+                  <td>
+                    {agent.identifiant ? (
+                      <span className="badge badge-success">Accès actif</span>
+                    ) : (
+                      <span className="muted">—</span>
+                    )}
+                  </td>
                   <td>
                     <div className="actions">
                       <button onClick={() => startEdit(agent)}>Modifier</button>
@@ -233,7 +268,7 @@ export function CommerciauxPage() {
               ))}
               {sortedCommerciaux.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="muted">
+                  <td colSpan={7} className="muted">
                     Aucun commercial.
                   </td>
                 </tr>

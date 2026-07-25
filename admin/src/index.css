@@ -497,3 +497,16 @@ tr.row-hidden {
 .badge-sale {
   background: #c0392b;
 }
+
+.badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #fff;
+}
+
+.badge-success {
+  background: #2e8b57;
+}

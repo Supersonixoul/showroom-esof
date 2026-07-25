@@ -8,16 +8,16 @@ import '../services/auth_session.dart';
 import '../services/catalog_repository.dart';
 import '../services/pro_session.dart';
 import '../theme/app_colors.dart';
-import 'brands_screen.dart';
 import 'categories_screen.dart';
-import 'characteristics_screen.dart';
-import 'clients_list_screen.dart';
+import '../services/commercial_session.dart';
+import 'commercial_login_screen.dart';
 import 'login_screen.dart';
 import 'order_catalog_screen.dart';
 import 'product_detail_screen.dart';
 import 'pro_login_screen.dart';
 import 'professionnels_list_screen.dart';
 import 'server_settings_screen.dart';
+import 'traitement_list_screen.dart';
 
 /// Écran d'accueil du mode client (spec §6.2) : en-tête compact (logo +
 /// slogan + accès réglages), grille de catégories et bandeau des marques
@@ -234,41 +234,19 @@ class _CompactHeader extends StatelessWidget {
             onSelected: (value) {
               switch (value) {
                 case 0:
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          AuthSession.instance.currentUser.value != null
-                              ? const ClientsListScreen()
-                              : const LoginScreen(),
-                    ),
-                  );
-                  break;
-                case 1:
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const BrandsScreen()),
-                  );
-                  break;
-                case 2:
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const CharacteristicsScreen(),
-                    ),
-                  );
-                  break;
-                case 3:
                   _openEspaceDesPros(context);
                   break;
-                case 4:
+                case 1:
                   _openPasserCommande(context);
+                  break;
+                case 2:
+                  _openTraitement(context);
                   break;
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 0, child: Text('Espace commercial')),
-              const PopupMenuItem(value: 1, child: Text('Marques')),
-              const PopupMenuItem(value: 2, child: Text('Caractéristiques')),
               PopupMenuItem(
-                value: 3,
+                value: 0,
                 child: Row(
                   children: const [
                     Icon(Icons.business_center, size: 18),
@@ -278,12 +256,22 @@ class _CompactHeader extends StatelessWidget {
                 ),
               ),
               PopupMenuItem(
-                value: 4,
+                value: 1,
                 child: Row(
                   children: const [
                     Icon(Icons.shopping_cart_checkout, size: 18),
                     SizedBox(width: 8),
                     Text('Passer commande'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 2,
+                child: Row(
+                  children: const [
+                    Icon(Icons.receipt_long, size: 18),
+                    SizedBox(width: 8),
+                    Text('Traitement'),
                   ],
                 ),
               ),
@@ -335,6 +323,18 @@ void _openPasserCommande(BuildContext context) {
       builder: (_) => ProSession.instance.currentPro.value != null
           ? const OrderCatalogScreen()
           : const ProLoginScreen(),
+    ),
+  );
+}
+
+/// Ouvre « Traitement » : réservé aux comptes commercial authentifiés
+/// (session persistante via [CommercialSession]).
+void _openTraitement(BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => CommercialSession.instance.currentCommercial.value != null
+          ? const TraitementListScreen()
+          : const CommercialLoginScreen(),
     ),
   );
 }

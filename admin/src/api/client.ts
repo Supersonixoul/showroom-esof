@@ -239,14 +239,16 @@ export const videosApi = {
 
 // ---- Commerciaux ESOF (agents commerciaux, contacts WhatsApp) -----------
 
+type AgentCommercialInput = Partial<AgentCommercial> & { motDePasse?: string };
+
 export const commerciauxApi = {
   list: () => request<AgentCommercial[]>('/commerciaux'),
-  create: (data: Partial<AgentCommercial>) =>
+  create: (data: AgentCommercialInput) =>
     request<AgentCommercial>('/commerciaux', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  update: (id: string, data: Partial<AgentCommercial>) =>
+  update: (id: string, data: AgentCommercialInput) =>
     request<AgentCommercial>(`/commerciaux/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),

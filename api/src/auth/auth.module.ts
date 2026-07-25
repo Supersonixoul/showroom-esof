@@ -7,6 +7,8 @@ import { JwtStrategy } from './jwt.strategy';
 import { RolesGuard } from './roles.guard';
 import { ProAuthGuard } from './pro-auth.guard';
 import { ProOrAdminGuard } from './pro-or-admin.guard';
+import { CommercialAuthGuard } from './commercial-auth.guard';
+import { CommercialOrAdminGuard } from './commercial-or-admin.guard';
 
 @Module({
   imports: [
@@ -17,7 +19,22 @@ import { ProOrAdminGuard } from './pro-or-admin.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RolesGuard, ProAuthGuard, ProOrAdminGuard],
-  exports: [JwtModule, RolesGuard, ProAuthGuard, ProOrAdminGuard],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    RolesGuard,
+    ProAuthGuard,
+    ProOrAdminGuard,
+    CommercialAuthGuard,
+    CommercialOrAdminGuard,
+  ],
+  exports: [
+    JwtModule,
+    RolesGuard,
+    ProAuthGuard,
+    ProOrAdminGuard,
+    CommercialAuthGuard,
+    CommercialOrAdminGuard,
+  ],
 })
 export class AuthModule {}

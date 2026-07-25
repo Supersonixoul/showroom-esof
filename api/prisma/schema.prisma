@@ -287,15 +287,20 @@ model Professionnel {
 /// Contact commercial ESOF (nom/prénom/téléphone WhatsApp) destinataire des
 /// commandes envoyées par les Pros. Sans rapport avec Role.COMMERCIAL /
 /// User (Espace commercial) — nommé distinctement pour éviter la confusion.
+/// `identifiant`/`motDePasse` (rubrique "Traitement") sont nullable : les
+/// commerciaux existants n'en ont pas encore tant qu'un admin ne les leur
+/// attribue pas via l'interface admin.
 model AgentCommercial {
-  id         String   @id @default(uuid()) @db.Uuid
-  nom        String   @db.VarChar(100)
-  prenom     String   @db.VarChar(100)
-  telephone1 String   @map("telephone_1") @db.VarChar(20)
-  telephone2 String?  @map("telephone_2") @db.VarChar(20)
-  actif      Boolean  @default(true)
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  nom         String   @db.VarChar(100)
+  prenom      String   @db.VarChar(100)
+  telephone1  String   @map("telephone_1") @db.VarChar(20)
+  telephone2  String?  @map("telephone_2") @db.VarChar(20)
+  identifiant String?  @unique @db.VarChar(50)
+  motDePasse  String?  @map("mot_de_passe") @db.VarChar(255)
+  actif       Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   commandes Commande[]
 
@@ -309,9 +314,20 @@ model Commande {
   commercialId    String          @map("commercial_id") @db.Uuid
   commercial      AgentCommercial @relation(fields: [commercialId], references: [id])
   dateCommande    DateTime        @default(now()) @map("date_commande")
-  statut          String          @default("ENVOYEE") @db.VarChar(20)
+  /// ENVOYEE (défaut) | EN_TRAITEMENT | PROFORMA_EMISE | MODIFIEE | ANNULEE
+  /// — voir CommandesService pour les transitions valides.
+  statut String @default("ENVOYEE") @db.VarChar(30)
 
-  lignes LigneCommande[]
+  /// Motif renseigné par le commercial en cas d'annulation (§Traitement).
+  motifAnnulation String? @map("motif_annulation")
+  /// Coché par le commercial lors du traitement des prix (facture proforma).
+  tvaApplicable Boolean @default(false) @map("tva_applicable")
+  /// Numéro séquentiel annuel de la facture proforma, format PF-AAAA-XXXX.
+  numeroProforma String?   @unique @map("numero_proforma") @db.VarChar(20)
+  dateProforma   DateTime? @map("date_proforma")
+
+  lignes     LigneCommande[]
+  historique HistoriqueCommande[]
 
   @@map("commandes")
 }
@@ -324,6 +340,24 @@ model LigneCommande {
   produit        Product  @relation(fields: [produitId], references: [id])
   quantite       Int
   libelleProduit String   @map("libelle_produit") @db.VarChar(255)
+  /// Prix unitaire en FCFA (sans décimales), renseigné par le commercial
+  /// lors du traitement — nul tant qu'il n'a pas encore été saisi.
+  prixUnitaire Decimal? @map("prix_unitaire") @db.Decimal(12, 0)
 
   @@map("lignes_commande")
+}
+
+/// Journal des actions du commercial sur une commande (rubrique
+/// "Traitement") — écriture automatique par CommandesService, jamais
+/// modifiable depuis l'app. `action` : PRISE_EN_CHARGE | MODIFICATION |
+/// PRIX_RENSEIGNES | PROFORMA_EMISE | ANNULATION.
+model HistoriqueCommande {
+  id         String   @id @default(uuid()) @db.Uuid
+  commandeId String   @map("commande_id") @db.Uuid
+  commande   Commande @relation(fields: [commandeId], references: [id], onDelete: Cascade)
+  dateAction DateTime @default(now()) @map("date_action")
+  action     String   @db.VarChar(30)
+  details    String?
+
+  @@map("historique_commandes")
 }

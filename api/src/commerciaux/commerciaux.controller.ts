@@ -12,9 +12,11 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { CommerciauxService } from './commerciaux.service';
 import { CreateAgentCommercialDto } from './dto/create-agent-commercial.dto';
 import { UpdateAgentCommercialDto } from './dto/update-agent-commercial.dto';
+import { LoginAgentCommercialDto } from './dto/login-agent-commercial.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -29,6 +31,14 @@ interface RequestWithAuth {
 @Controller('commerciaux')
 export class CommerciauxController {
   constructor(private readonly commerciauxService: CommerciauxService) {}
+
+  /// Public — connexion à la rubrique "Traitement". Throttle strict, même
+  /// principe que /professionnels/login.
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Post('login')
+  login(@Body() dto: LoginAgentCommercialDto) {
+    return this.commerciauxService.login(dto);
+  }
 
   @UseGuards(ProOrAdminGuard)
   @Get()

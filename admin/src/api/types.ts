@@ -135,6 +135,7 @@ export interface AgentCommercial {
   prenom: string;
   telephone1: string;
   telephone2?: string | null;
+  identifiant?: string | null;
   actif: boolean;
   createdAt: string;
   updatedAt: string;
