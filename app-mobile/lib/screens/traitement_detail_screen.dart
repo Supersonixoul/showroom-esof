@@ -52,6 +52,7 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
   late List<_LigneEdit> _lignes;
   late bool _tvaApplicable;
   late bool _bicApplicable;
+  bool _totauxVisibles = true;
   bool _saving = false;
   bool _generating = false;
   String? _error;
@@ -597,7 +598,36 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
                 ),
               ),
             ),
-          if (!estAnnulee && !clavierOuvert)
+          if (!clavierOuvert)
+            InkWell(
+              onTap: () =>
+                  setState(() => _totauxVisibles = !_totauxVisibles),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                color: Colors.grey.shade200,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _totauxVisibles
+                          ? 'Masquer les totaux'
+                          : 'Afficher les totaux',
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.black54),
+                    ),
+                    Icon(
+                      _totauxVisibles
+                          ? Icons.keyboard_arrow_down
+                          : Icons.keyboard_arrow_up,
+                      size: 18,
+                      color: Colors.black54,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (!estAnnulee && !clavierOuvert && _totauxVisibles)
             CheckboxListTile(
               value: _tvaApplicable,
               onChanged: (value) =>
@@ -605,7 +635,7 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
               title: const Text('Appliquer la TVA (18 %)'),
               controlAffinity: ListTileControlAffinity.leading,
             ),
-          if (!estAnnulee && !clavierOuvert)
+          if (!estAnnulee && !clavierOuvert && _totauxVisibles)
             CheckboxListTile(
               value: _bicApplicable,
               onChanged: (value) =>
@@ -613,7 +643,7 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
               title: const Text('Appliquer le BIC (2 %)'),
               controlAffinity: ListTileControlAffinity.leading,
             ),
-          if (!clavierOuvert)
+          if (!clavierOuvert && _totauxVisibles)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
