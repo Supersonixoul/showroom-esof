@@ -80,7 +80,7 @@ class _OrderCatalogScreenState extends State<OrderCatalogScreen> {
     final showSearchResults = _query.length >= 2;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Passer commande'),
+        title: const Text('Commander'),
         actions: [
           ValueListenableBuilder<List<CartLine>>(
             valueListenable: OrderCart.instance.lines,

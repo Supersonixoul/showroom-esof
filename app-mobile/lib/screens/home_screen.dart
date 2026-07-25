@@ -261,7 +261,7 @@ class _CompactHeader extends StatelessWidget {
                   children: const [
                     Icon(Icons.shopping_cart_checkout, size: 18),
                     SizedBox(width: 8),
-                    Text('Passer commande'),
+                    Text('Commander'),
                   ],
                 ),
               ),
