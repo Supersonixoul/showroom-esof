@@ -610,7 +610,7 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
               value: _bicApplicable,
               onChanged: (value) =>
                   setState(() => _bicApplicable = value ?? false),
-              title: const Text('Appliquer le BIC (2 %, optionnel)'),
+              title: const Text('Appliquer le BIC (2 %)'),
               controlAffinity: ListTileControlAffinity.leading,
             ),
           if (!clavierOuvert)
