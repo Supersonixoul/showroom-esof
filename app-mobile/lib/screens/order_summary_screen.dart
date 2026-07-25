@@ -7,6 +7,7 @@ import '../models/pro_models.dart';
 import '../services/order_cart.dart';
 import '../services/pro_api_service.dart';
 import '../services/pro_session.dart';
+import '../widgets/pro_logout_action.dart';
 
 /// Écran 3 de « Passer commande » : récapitulatif des lignes, choix du
 /// commercial et envoi par WhatsApp (spec §3.3 Écran 3).
@@ -22,6 +23,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
   Future<List<AgentCommercial>>? _commerciauxFuture;
   AgentCommercial? _selectedCommercial;
   bool _sending = false;
+  bool _sessionExpiredHandled = false;
   String? _error;
   String? _pendingMessage;
 
@@ -30,6 +32,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
   @override
   void initState() {
     super.initState();
+    requireProSession(context);
+    if (ProSession.instance.currentPro.value == null) return;
     _commerciauxFuture = _api.fetchCommerciaux(_token).then((list) {
       final actifs = list.where((c) => c.actif).toList();
       if (actifs.isNotEmpty && mounted) {
@@ -43,7 +47,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
     final pro = ProSession.instance.currentPro.value!;
     final date = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
     final buffer = StringBuffer();
-    buffer.writeln('🛒 COMMANDE ESOF');
+    buffer.writeln('🛒 COMMANDE CLIENT');
     buffer.writeln('━━━━━━━━━━━━━━');
     buffer.writeln('Pro : ${pro.nom}');
     buffer.writeln('Tél : ${pro.telephone1}');
@@ -77,6 +81,10 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
 
     try {
       await _api.createCommande(_token, commercialId: commercial.id, lignes: lines);
+    } on ProSessionExpiredException {
+      if (!mounted) return;
+      await performProLogout(context, message: 'Session expirée, veuillez vous reconnecter.');
+      return;
     } catch (e) {
       setState(() {
         _sending = false;
@@ -125,7 +133,10 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Récapitulatif de commande')),
+      appBar: AppBar(
+        title: const Text('Récapitulatif de commande'),
+        actions: const [ProLogoutAction()],
+      ),
       body: ValueListenableBuilder<List<CartLine>>(
         valueListenable: OrderCart.instance.lines,
         builder: (context, lines, _) {
@@ -174,6 +185,18 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
                     FutureBuilder<List<AgentCommercial>>(
                       future: _commerciauxFuture,
                       builder: (context, snapshot) {
+                        if (snapshot.hasError &&
+                            snapshot.error is ProSessionExpiredException &&
+                            !_sessionExpiredHandled) {
+                          _sessionExpiredHandled = true;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            performProLogout(
+                              context,
+                              message: 'Session expirée, veuillez vous reconnecter.',
+                            );
+                          });
+                        }
                         final commerciaux = snapshot.data ?? [];
                         return DropdownButtonFormField<AgentCommercial>(
                           value: commerciaux.contains(_selectedCommercial)

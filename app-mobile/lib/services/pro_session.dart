@@ -6,6 +6,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_service.dart';
 
+/// Levée par [ProApiService] quand l'API répond 401 (jeton Pro expiré ou
+/// invalide) — permet de distinguer une session expirée d'une autre erreur
+/// réseau/API pour déclencher la déconnexion automatique.
+class ProSessionExpiredException implements Exception {}
+
 class ProUser {
   final String id;
   final String nom;

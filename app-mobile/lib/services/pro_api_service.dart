@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/pro_models.dart';
 import 'api_service.dart';
+import 'pro_session.dart';
 
 /// Appels API de l'Espace des Pros (gestion admin des Professionnel) et de
 /// "Passer commande" (liste des commerciaux ESOF, envoi de commande).
@@ -14,6 +15,9 @@ class ProApiService {
       };
 
   void _checkOk(http.Response response) {
+    if (response.statusCode == 401) {
+      throw ProSessionExpiredException();
+    }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception('Erreur API (${response.statusCode}) : ${response.body}');
     }

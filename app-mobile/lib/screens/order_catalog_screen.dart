@@ -7,6 +7,7 @@ import '../models/pro_models.dart';
 import '../services/api_service.dart';
 import '../services/catalog_repository.dart';
 import '../services/order_cart.dart';
+import '../widgets/pro_logout_action.dart';
 import 'order_summary_screen.dart';
 
 /// Écran 2 de « Passer commande » : recherche produit (endpoint existant) et
@@ -31,6 +32,7 @@ class _OrderCatalogScreenState extends State<OrderCatalogScreen> {
   @override
   void initState() {
     super.initState();
+    requireProSession(context);
     CatalogRepository.instance.ensureInitialized();
   }
 
@@ -115,6 +117,7 @@ class _OrderCatalogScreenState extends State<OrderCatalogScreen> {
               );
             },
           ),
+          const ProLogoutAction(),
         ],
       ),
       body: Column(

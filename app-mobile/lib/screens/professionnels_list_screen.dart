@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/pro_models.dart';
 import '../services/auth_session.dart';
 import '../services/pro_api_service.dart';
+import '../services/pro_session.dart';
+import 'login_screen.dart';
 import 'professionnel_form_screen.dart';
 
 /// Liste des comptes Pro (Espace des Pros, admin uniquement) — modelée sur
@@ -18,6 +20,7 @@ class ProfessionnelsListScreen extends StatefulWidget {
 class _ProfessionnelsListScreenState extends State<ProfessionnelsListScreen> {
   final _api = ProApiService();
   Future<List<Professionnel>>? _future;
+  bool _sessionExpiredHandled = false;
 
   String get _token => AuthSession.instance.currentUser.value!.token;
 
@@ -25,6 +28,27 @@ class _ProfessionnelsListScreenState extends State<ProfessionnelsListScreen> {
   void initState() {
     super.initState();
     _reload();
+  }
+
+  /// La session admin persistée peut avoir expiré (jeton JWT valable 12h) —
+  /// dans ce cas on déconnecte et on redemande une connexion plutôt que
+  /// d'afficher une erreur 401 brute.
+  void _handleSessionExpired() {
+    if (_sessionExpiredHandled) return;
+    _sessionExpiredHandled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await AuthSession.instance.logout();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => LoginScreen(
+            destinationBuilder: (_) => const ProfessionnelsListScreen(),
+            requiredRole: 'ADMIN',
+          ),
+        ),
+      );
+    });
   }
 
   Future<void> _reload() async {
@@ -83,6 +107,10 @@ class _ProfessionnelsListScreenState extends State<ProfessionnelsListScreen> {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
+              if (snapshot.error is ProSessionExpiredException) {
+                _handleSessionExpired();
+                return const Center(child: CircularProgressIndicator());
+              }
               return Center(child: Text('Erreur : ${snapshot.error}'));
             }
             final list = snapshot.data ?? [];
