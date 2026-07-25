@@ -27,7 +27,9 @@ class _LigneEdit {
 
   _LigneEdit(this.ligne)
       : prixController = TextEditingController(
-          text: ligne.prixUnitaire != null ? ligne.prixUnitaire!.round().toString() : '',
+          text: ligne.prixUnitaire != null
+              ? ligne.prixUnitaire!.round().toString()
+              : '',
         );
 
   void dispose() => prixController.dispose();
@@ -53,7 +55,8 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
   bool _generating = false;
   String? _error;
 
-  String get _token => CommercialSession.instance.currentCommercial.value!.token;
+  String get _token =>
+      CommercialSession.instance.currentCommercial.value!.token;
 
   @override
   void initState() {
@@ -74,11 +77,14 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
 
   double get _totalHt => _lignes.fold(
         0.0,
-        (sum, l) => sum + (double.tryParse(l.prixController.text) ?? 0) * l.ligne.quantite,
+        (sum, l) =>
+            sum +
+            (double.tryParse(l.prixController.text) ?? 0) * l.ligne.quantite,
       );
 
   bool get _toutesLignesPricees =>
-      _lignes.isNotEmpty && _lignes.every((l) => double.tryParse(l.prixController.text) != null);
+      _lignes.isNotEmpty &&
+      _lignes.every((l) => double.tryParse(l.prixController.text) != null);
 
   List<LigneCommandeTraitement> _lignesActuelles() {
     return _lignes.map((edit) {
@@ -130,7 +136,8 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
       return result.commande;
     } on CommercialSessionExpiredException {
       if (!mounted) return null;
-      await performCommercialLogout(context, message: 'Session expirée, veuillez vous reconnecter.');
+      await performCommercialLogout(context,
+          message: 'Session expirée, veuillez vous reconnecter.');
       return null;
     } catch (e) {
       setState(() {
@@ -141,7 +148,8 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
     }
   }
 
-  Future<void> _proposerNotificationModification(CommandeTraitement commande) async {
+  Future<void> _proposerNotificationModification(
+      CommandeTraitement commande) async {
     if (!mounted) return;
     final confirmer = await showDialog<bool>(
       context: context,
@@ -193,13 +201,15 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
     buffer.writeln('━━━━━━━━━━━━━━');
     buffer.writeln('Motif : $motif');
     buffer.writeln('━━━━━━━━━━━━━━');
-    buffer.write('Nous restons à votre disposition pour toute nouvelle commande. — ESOF');
+    buffer.write(
+        'Nous restons à votre disposition pour toute nouvelle commande. — ESOF');
     return buffer.toString();
   }
 
   Future<void> _envoyerWhatsApp(String message) async {
     final phone = _commande.professionnel.telephone1.replaceFirst('+', '');
-    final uri = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
+    final uri =
+        Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
     var launched = false;
     try {
       launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -211,7 +221,8 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("WhatsApp n'a pas pu être ouvert"),
-        content: const Text('Vous pouvez copier le message à envoyer manuellement.'),
+        content:
+            const Text('Vous pouvez copier le message à envoyer manuellement.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -276,10 +287,12 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
       );
     } on CommercialSessionExpiredException {
       if (!mounted) return;
-      await performCommercialLogout(context, message: 'Session expirée, veuillez vous reconnecter.');
+      await performCommercialLogout(context,
+          message: 'Session expirée, veuillez vous reconnecter.');
       return;
     } catch (e) {
-      setState(() => _error = 'Erreur lors de la génération de la proforma : $e');
+      setState(
+          () => _error = 'Erreur lors de la génération de la proforma : $e');
     } finally {
       if (mounted) setState(() => _generating = false);
     }
@@ -325,7 +338,8 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
       );
     } on CommercialSessionExpiredException {
       if (!mounted) return;
-      await performCommercialLogout(context, message: 'Session expirée, veuillez vous reconnecter.');
+      await performCommercialLogout(context,
+          message: 'Session expirée, veuillez vous reconnecter.');
     } catch (e) {
       setState(() => _error = "Erreur lors de l'annulation : $e");
     }
@@ -338,7 +352,8 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
       builder: (context) => _AjoutArticleSheet(
         onAdd: (produitId, nomProduit) {
           setState(() {
-            final existante = _lignes.where((l) => l.ligne.produitId == produitId);
+            final existante =
+                _lignes.where((l) => l.ligne.produitId == produitId);
             if (existante.isNotEmpty) {
               existante.first.ligne.quantite += 1;
             } else {
@@ -388,6 +403,10 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
     final estAnnulee = _commande.estAnnulee;
     final tva = _tvaApplicable ? _totalHt * 0.18 : 0;
     final totalTtc = _totalHt + tva;
+    // Le clavier réduit la hauteur disponible : on masque le bandeau de
+    // totaux/actions pendant la saisie pour garder les champs de prix
+    // visibles au-dessus du clavier.
+    final clavierOuvert = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -409,31 +428,54 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
                         Expanded(
                           child: Text(
                             _commande.professionnel.nom,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: statutColor(_commande.statut),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             statutLabel(_commande.statut),
-                            style: const TextStyle(color: Colors.white, fontSize: 11),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 11),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(DateFormat('dd/MM/yyyy HH:mm').format(_commande.dateCommande)),
                     Row(
                       children: [
-                        Text(_commande.professionnel.telephone1),
+                        const Icon(Icons.schedule,
+                            size: 14, color: Colors.black54),
+                        const SizedBox(width: 4),
+                        Text(
+                          DateFormat('dd/MM/yyyy HH:mm')
+                              .format(_commande.dateCommande),
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.black54),
+                        ),
+                        const SizedBox(width: 12),
+                        const Icon(Icons.phone,
+                            size: 14, color: Colors.black54),
+                        const SizedBox(width: 4),
+                        Text(
+                          _commande.professionnel.telephone1,
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.black54),
+                        ),
                         IconButton(
-                          icon: const Icon(Icons.call, size: 18),
+                          icon: const Icon(Icons.call, size: 16),
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                           onPressed: () => launchUrl(
-                            Uri.parse('tel:${_commande.professionnel.telephone1}'),
+                            Uri.parse(
+                                'tel:${_commande.professionnel.telephone1}'),
                           ),
                         ),
                       ],
@@ -473,7 +515,8 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
                             Expanded(
                               child: Text(
                                 edit.ligne.libelleProduit,
-                                style: const TextStyle(fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600),
                               ),
                             ),
                             if (!estAnnulee)
@@ -489,14 +532,16 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
                               IconButton(
                                 icon: const Icon(Icons.remove_circle_outline),
                                 onPressed: edit.ligne.quantite > 1
-                                    ? () => setState(() => edit.ligne.quantite--)
+                                    ? () =>
+                                        setState(() => edit.ligne.quantite--)
                                     : null,
                                 visualDensity: VisualDensity.compact,
                               ),
                               Text('${edit.ligne.quantite}'),
                               IconButton(
                                 icon: const Icon(Icons.add_circle_outline),
-                                onPressed: () => setState(() => edit.ligne.quantite++),
+                                onPressed: () =>
+                                    setState(() => edit.ligne.quantite++),
                                 visualDensity: VisualDensity.compact,
                               ),
                             ] else
@@ -533,7 +578,7 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
               },
             ),
           ),
-          if (!estAnnulee)
+          if (!estAnnulee && !clavierOuvert)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Align(
@@ -545,87 +590,100 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
                 ),
               ),
             ),
-          if (!estAnnulee)
+          if (!estAnnulee && !clavierOuvert)
             CheckboxListTile(
               value: _tvaApplicable,
-              onChanged: (value) => setState(() => _tvaApplicable = value ?? false),
+              onChanged: (value) =>
+                  setState(() => _tvaApplicable = value ?? false),
               title: const Text('Appliquer la TVA (18 %)'),
               controlAffinity: ListTileControlAffinity.leading,
             ),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey.shade100,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (_tvaApplicable) ...[
-                  Text('Total HT : ${_formatFcfa(_totalHt)}'),
-                  Text('TVA 18 % : ${_formatFcfa(tva)}'),
-                  Text(
-                    'Total TTC : ${_formatFcfa(totalTtc)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ] else
-                  Text(
-                    'Montant total : ${_formatFcfa(_totalHt)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                const SizedBox(height: 12),
-                if (!estAnnulee) ...[
-                  FilledButton.icon(
-                    onPressed: _saving ? null : () => _save(),
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Icon(Icons.save),
-                    label: const Text('Enregistrer les modifications'),
-                  ),
-                  const SizedBox(height: 8),
-                  Tooltip(
-                    message: _toutesLignesPricees ? '' : 'Renseignez tous les prix',
-                    child: FilledButton.icon(
-                      onPressed: (_toutesLignesPricees && !_generating)
-                          ? () => _genererProforma(renvoyer: false)
-                          : null,
-                      icon: _generating
+          if (!clavierOuvert)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              color: Colors.grey.shade100,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_tvaApplicable) ...[
+                    Text('Total HT : ${_formatFcfa(_totalHt)}'),
+                    Text('TVA 18 % : ${_formatFcfa(tva)}'),
+                    Text(
+                      'Total TTC : ${_formatFcfa(totalTtc)}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ] else
+                    Text(
+                      'Montant total : ${_formatFcfa(_totalHt)}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  const SizedBox(height: 12),
+                  if (!estAnnulee) ...[
+                    FilledButton.icon(
+                      onPressed: _saving ? null : () => _save(),
+                      icon: _saving
                           ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
                             )
-                          : const Icon(Icons.picture_as_pdf),
-                      label: const Text('Générer la proforma'),
+                          : const Icon(Icons.save),
+                      label: const Text('Enregistrer les modifications'),
                     ),
-                  ),
-                  if (_commande.proformaEmise) ...[
+                    const SizedBox(height: 8),
+                    Tooltip(
+                      message: _toutesLignesPricees
+                          ? ''
+                          : 'Renseignez tous les prix',
+                      child: FilledButton.icon(
+                        onPressed: (_toutesLignesPricees && !_generating)
+                            ? () => _genererProforma(renvoyer: false)
+                            : null,
+                        icon: _generating
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.picture_as_pdf),
+                        label: const Text('Générer la proforma'),
+                      ),
+                    ),
+                    if (_commande.proformaEmise) ...[
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: _generating
+                            ? null
+                            : () => _genererProforma(renvoyer: true),
+                        icon: const Icon(Icons.share),
+                        label: const Text('Renvoyer la proforma'),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
-                      onPressed: _generating ? null : () => _genererProforma(renvoyer: true),
+                      onPressed: _annuler,
+                      style:
+                          OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                      icon: const Icon(Icons.cancel_outlined),
+                      label: const Text('Annuler la commande'),
+                    ),
+                  ] else if (_commande.proformaEmise ||
+                      _commande.numeroProforma != null)
+                    OutlinedButton.icon(
+                      onPressed: _generating
+                          ? null
+                          : () => _genererProforma(renvoyer: true),
                       icon: const Icon(Icons.share),
                       label: const Text('Renvoyer la proforma'),
                     ),
-                  ],
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: _annuler,
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                    icon: const Icon(Icons.cancel_outlined),
-                    label: const Text('Annuler la commande'),
-                  ),
-                ] else if (_commande.proformaEmise || _commande.numeroProforma != null)
-                  OutlinedButton.icon(
-                    onPressed: _generating ? null : () => _genererProforma(renvoyer: true),
-                    icon: const Icon(Icons.share),
-                    label: const Text('Renvoyer la proforma'),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -696,7 +754,8 @@ class _AjoutArticleSheetState extends State<_AjoutArticleSheet> {
         height: MediaQuery.of(context).size.height * 0.6,
         child: Column(
           children: [
-            const Text('Ajouter un article', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Ajouter un article',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             TextField(
               controller: _searchController,
@@ -713,7 +772,8 @@ class _AjoutArticleSheetState extends State<_AjoutArticleSheet> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : (_results == null)
-                      ? const Center(child: Text('Tapez au moins 2 caractères.'))
+                      ? const Center(
+                          child: Text('Tapez au moins 2 caractères.'))
                       : _results!.isEmpty
                           ? const Center(child: Text('Aucun produit trouvé.'))
                           : ListView.builder(
