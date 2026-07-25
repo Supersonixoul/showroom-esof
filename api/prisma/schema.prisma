@@ -322,6 +322,9 @@ model Commande {
   motifAnnulation String? @map("motif_annulation")
   /// Coché par le commercial lors du traitement des prix (facture proforma).
   tvaApplicable Boolean @default(false) @map("tva_applicable")
+  /// BIC 2 % (Bénéfice Industriel et Commercial, Burkina Faso) — optionnel,
+  /// calculé sur le montant TTC (ou HT si la TVA n'est pas appliquée).
+  bicApplicable Boolean @default(false) @map("bic_applicable")
   /// Numéro séquentiel annuel de la facture proforma, format PF-AAAA-XXXX.
   numeroProforma String?   @unique @map("numero_proforma") @db.VarChar(20)
   dateProforma   DateTime? @map("date_proforma")

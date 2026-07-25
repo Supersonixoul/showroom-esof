@@ -151,6 +151,7 @@ export class CommandesService {
     }
 
     const tvaApplicable = dto.tvaApplicable ?? commande.tvaApplicable;
+    const bicApplicable = dto.bicApplicable ?? commande.bicApplicable;
 
     const updated = await this.prisma.$transaction(async (tx) => {
       await tx.ligneCommande.deleteMany({ where: { commandeId: id } });
@@ -158,6 +159,7 @@ export class CommandesService {
         where: { id },
         data: {
           tvaApplicable,
+          bicApplicable,
           statut: nouveauStatut,
           lignes: {
             create: dto.lignes.map((ligne) => ({
@@ -205,6 +207,7 @@ export class CommandesService {
         prixUnitaire: Number(ligne.prixUnitaire),
       })),
       tvaApplicable: commande.tvaApplicable,
+      bicApplicable: commande.bicApplicable,
     });
 
     await this.prisma.$transaction([

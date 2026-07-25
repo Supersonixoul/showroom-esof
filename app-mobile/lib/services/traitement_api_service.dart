@@ -23,7 +23,8 @@ class TraitementApiService {
     }
   }
 
-  Future<List<CommandeTraitement>> fetchCommandes(String token, {String? statut}) async {
+  Future<List<CommandeTraitement>> fetchCommandes(String token,
+      {String? statut}) async {
     final uri = Uri.parse('${ApiService.baseUrl}/commandes/a-traiter').replace(
       queryParameters: statut != null ? {'statut': statut} : null,
     );
@@ -39,6 +40,7 @@ class TraitementApiService {
     String commandeId, {
     required List<LigneCommandeTraitement> lignes,
     bool? tvaApplicable,
+    bool? bicApplicable,
   }) async {
     final response = await http.patch(
       Uri.parse('${ApiService.baseUrl}/commandes/$commandeId/traitement'),
@@ -46,12 +48,14 @@ class TraitementApiService {
       body: jsonEncode({
         'lignes': lignes.map((l) => l.toJson()).toList(),
         if (tvaApplicable != null) 'tvaApplicable': tvaApplicable,
+        if (bicApplicable != null) 'bicApplicable': bicApplicable,
       }),
     );
     _checkOk(response);
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     return TraitementResult(
-      commande: CommandeTraitement.fromJson(data['commande'] as Map<String, dynamic>),
+      commande:
+          CommandeTraitement.fromJson(data['commande'] as Map<String, dynamic>),
       articlesModifies: data['articlesModifies'] as bool? ?? false,
     );
   }
@@ -66,7 +70,8 @@ class TraitementApiService {
     return data['numeroProforma'] as String;
   }
 
-  Future<Uint8List> telechargerProformaPdf(String token, String commandeId) async {
+  Future<Uint8List> telechargerProformaPdf(
+      String token, String commandeId) async {
     final response = await http.get(
       Uri.parse('${ApiService.baseUrl}/commandes/$commandeId/proforma.pdf'),
       headers: _headers(token),
@@ -86,6 +91,7 @@ class TraitementApiService {
       body: jsonEncode({'motif': motif}),
     );
     _checkOk(response);
-    return CommandeTraitement.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    return CommandeTraitement.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>);
   }
 }

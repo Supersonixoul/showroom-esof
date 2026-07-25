@@ -39,4 +39,8 @@ export class TraitementCommandeDto {
   @IsOptional()
   @IsBoolean()
   tvaApplicable?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  bicApplicable?: boolean;
 }

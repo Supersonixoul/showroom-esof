@@ -19,6 +19,9 @@ const ENTREPRISE_INFOS = {
 const NAVY = '#1B2A4A';
 const GOLD = '#C9A227';
 const TVA_TAUX = 0.18;
+/// BIC (Bénéfice Industriel et Commercial), Burkina Faso — 2 %, optionnel,
+/// appliqué sur le montant TTC (ou HT si la TVA n'est pas appliquée).
+const BIC_TAUX = 0.02;
 
 export const PROFORMAS_DIR = join(UPLOADS_ROOT, 'proformas');
 
@@ -34,6 +37,7 @@ export interface ProformaData {
   professionnel: { nom: string; telephone1: string };
   lignes: ProformaLigne[];
   tvaApplicable: boolean;
+  bicApplicable: boolean;
 }
 
 function formatFcfa(n: number): string {
@@ -122,18 +126,39 @@ export class ProformaService {
       y += 14;
 
       // 5. Totaux, alignés à droite.
+      let baseBic = totalHt;
       if (data.tvaApplicable) {
         const tva = totalHt * TVA_TAUX;
-        const totalTtc = totalHt + tva;
+        baseBic = totalHt + tva;
         doc.fontSize(10).fillColor('#000000');
         doc.text(`Total HT : ${formatFcfa(totalHt)}`, 325, y, { width: 220, align: 'right' });
         y += 16;
         doc.text(`TVA 18 % : ${formatFcfa(tva)}`, 325, y, { width: 220, align: 'right' });
         y += 18;
+      }
+
+      if (data.bicApplicable) {
+        const bic = baseBic * BIC_TAUX;
+        const netAPayer = baseBic + bic;
+        doc.fontSize(10).fillColor('#000000');
+        doc.text(
+          `${data.tvaApplicable ? 'Total TTC' : 'Montant HT'} : ${formatFcfa(baseBic)}`,
+          325,
+          y,
+          { width: 220, align: 'right' },
+        );
+        y += 16;
+        doc.text(`BIC 2 % : ${formatFcfa(bic)}`, 325, y, { width: 220, align: 'right' });
+        y += 18;
         doc
           .fontSize(12)
           .fillColor(NAVY)
-          .text(`Total TTC : ${formatFcfa(totalTtc)}`, 325, y, { width: 220, align: 'right' });
+          .text(`Net à payer : ${formatFcfa(netAPayer)}`, 325, y, { width: 220, align: 'right' });
+      } else if (data.tvaApplicable) {
+        doc
+          .fontSize(12)
+          .fillColor(NAVY)
+          .text(`Total TTC : ${formatFcfa(baseBic)}`, 325, y, { width: 220, align: 'right' });
       } else {
         doc
           .fontSize(12)

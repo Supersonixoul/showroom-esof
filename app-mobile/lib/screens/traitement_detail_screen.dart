@@ -51,6 +51,7 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
   late CommandeTraitement _commande;
   late List<_LigneEdit> _lignes;
   late bool _tvaApplicable;
+  late bool _bicApplicable;
   bool _saving = false;
   bool _generating = false;
   String? _error;
@@ -64,6 +65,7 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
     requireCommercialSession(context);
     _commande = widget.commande;
     _tvaApplicable = _commande.tvaApplicable;
+    _bicApplicable = _commande.bicApplicable;
     _lignes = _commande.lignes.map((l) => _LigneEdit(l)).toList();
   }
 
@@ -114,11 +116,13 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
         _commande.id,
         lignes: _lignesActuelles(),
         tvaApplicable: _tvaApplicable,
+        bicApplicable: _bicApplicable,
       );
       if (!mounted) return null;
       setState(() {
         _commande = result.commande;
         _tvaApplicable = result.commande.tvaApplicable;
+        _bicApplicable = result.commande.bicApplicable;
         for (final l in _lignes) {
           l.dispose();
         }
@@ -269,6 +273,7 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
             statut: 'PROFORMA_EMISE',
             motifAnnulation: saved.motifAnnulation,
             tvaApplicable: saved.tvaApplicable,
+            bicApplicable: saved.bicApplicable,
             numeroProforma: numeroProforma,
             dateProforma: DateTime.now(),
             lignes: saved.lignes,
@@ -402,7 +407,9 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
   Widget build(BuildContext context) {
     final estAnnulee = _commande.estAnnulee;
     final tva = _tvaApplicable ? _totalHt * 0.18 : 0;
-    final totalTtc = _totalHt + tva;
+    final baseBic = _totalHt + tva;
+    final bic = _bicApplicable ? baseBic * 0.02 : 0;
+    final totalFinal = baseBic + bic;
     // Le clavier réduit la hauteur disponible : on masque le bandeau de
     // totaux/actions pendant la saisie pour garder les champs de prix
     // visibles au-dessus du clavier.
@@ -598,6 +605,14 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
               title: const Text('Appliquer la TVA (18 %)'),
               controlAffinity: ListTileControlAffinity.leading,
             ),
+          if (!estAnnulee && !clavierOuvert)
+            CheckboxListTile(
+              value: _bicApplicable,
+              onChanged: (value) =>
+                  setState(() => _bicApplicable = value ?? false),
+              title: const Text('Appliquer le BIC (2 %, optionnel)'),
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
           if (!clavierOuvert)
             Container(
               width: double.infinity,
@@ -609,12 +624,24 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
                   if (_tvaApplicable) ...[
                     Text('Total HT : ${_formatFcfa(_totalHt)}'),
                     Text('TVA 18 % : ${_formatFcfa(tva)}'),
+                  ],
+                  if (_bicApplicable) ...[
                     Text(
-                      'Total TTC : ${_formatFcfa(totalTtc)}',
+                      '${_tvaApplicable ? 'Total TTC' : 'Montant HT'} : ${_formatFcfa(baseBic)}',
+                    ),
+                    Text('BIC 2 % : ${_formatFcfa(bic)}'),
+                    Text(
+                      'Net à payer : ${_formatFcfa(totalFinal)}',
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 16),
                     ),
-                  ] else
+                  ] else if (_tvaApplicable)
+                    Text(
+                      'Total TTC : ${_formatFcfa(baseBic)}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16),
+                    )
+                  else
                     Text(
                       'Montant total : ${_formatFcfa(_totalHt)}',
                       style: const TextStyle(

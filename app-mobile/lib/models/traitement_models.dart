@@ -29,8 +29,9 @@ class LigneCommandeTraitement {
         produitId: json['produitId'] as String,
         libelleProduit: json['libelleProduit'] as String,
         quantite: json['quantite'] as int,
-        prixUnitaire:
-            json['prixUnitaire'] != null ? _parseDecimal(json['prixUnitaire']) : null,
+        prixUnitaire: json['prixUnitaire'] != null
+            ? _parseDecimal(json['prixUnitaire'])
+            : null,
       );
 
   Map<String, dynamic> toJson() => {
@@ -46,9 +47,11 @@ class ProfessionnelInfo {
   final String nom;
   final String telephone1;
 
-  ProfessionnelInfo({required this.id, required this.nom, required this.telephone1});
+  ProfessionnelInfo(
+      {required this.id, required this.nom, required this.telephone1});
 
-  factory ProfessionnelInfo.fromJson(Map<String, dynamic> json) => ProfessionnelInfo(
+  factory ProfessionnelInfo.fromJson(Map<String, dynamic> json) =>
+      ProfessionnelInfo(
         id: json['id'] as String,
         nom: json['nom'] as String,
         telephone1: json['telephone1'] as String,
@@ -63,6 +66,7 @@ class CommandeTraitement {
   final String statut;
   final String? motifAnnulation;
   final bool tvaApplicable;
+  final bool bicApplicable;
   final String? numeroProforma;
   final DateTime? dateProforma;
   final List<LigneCommandeTraitement> lignes;
@@ -74,25 +78,29 @@ class CommandeTraitement {
     required this.statut,
     this.motifAnnulation,
     required this.tvaApplicable,
+    required this.bicApplicable,
     this.numeroProforma,
     this.dateProforma,
     required this.lignes,
   });
 
-  factory CommandeTraitement.fromJson(Map<String, dynamic> json) => CommandeTraitement(
+  factory CommandeTraitement.fromJson(Map<String, dynamic> json) =>
+      CommandeTraitement(
         id: json['id'] as String,
-        professionnel:
-            ProfessionnelInfo.fromJson(json['professionnel'] as Map<String, dynamic>),
+        professionnel: ProfessionnelInfo.fromJson(
+            json['professionnel'] as Map<String, dynamic>),
         dateCommande: DateTime.parse(json['dateCommande'] as String),
         statut: json['statut'] as String,
         motifAnnulation: json['motifAnnulation'] as String?,
         tvaApplicable: json['tvaApplicable'] as bool? ?? false,
+        bicApplicable: json['bicApplicable'] as bool? ?? false,
         numeroProforma: json['numeroProforma'] as String?,
         dateProforma: json['dateProforma'] != null
             ? DateTime.parse(json['dateProforma'] as String)
             : null,
         lignes: (json['lignes'] as List<dynamic>)
-            .map((l) => LigneCommandeTraitement.fromJson(l as Map<String, dynamic>))
+            .map((l) =>
+                LigneCommandeTraitement.fromJson(l as Map<String, dynamic>))
             .toList(),
       );
 
