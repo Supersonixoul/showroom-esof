@@ -19,6 +19,9 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ClientsModule } from './clients/clients.module';
 import { QuotesModule } from './quotes/quotes.module';
+import { ProfessionnelsModule } from './professionnels/professionnels.module';
+import { CommerciauxModule } from './commerciaux/commerciaux.module';
+import { CommandesModule } from './commandes/commandes.module';
 
 @Module({
   imports: [
@@ -41,6 +44,9 @@ import { QuotesModule } from './quotes/quotes.module';
     VideosModule,
     CatalogModule,
     TvModule,
+    ProfessionnelsModule,
+    CommerciauxModule,
+    CommandesModule,
   ],
   controllers: [AppController],
   providers: [

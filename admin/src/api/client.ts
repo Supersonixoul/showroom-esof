@@ -1,4 +1,5 @@
 import type {
+  AgentCommercial,
   AuthUser,
   Brand,
   Category,
@@ -7,6 +8,7 @@ import type {
   Product,
   ProductImage,
   ProductSpec,
+  Professionnel,
   PromoVideo,
   Subcategory,
   UploadResult,
@@ -233,6 +235,42 @@ export const videosApi = {
       method: 'PATCH',
       body: JSON.stringify({ direction }),
     }),
+};
+
+// ---- Commerciaux ESOF (agents commerciaux, contacts WhatsApp) -----------
+
+export const commerciauxApi = {
+  list: () => request<AgentCommercial[]>('/commerciaux'),
+  create: (data: Partial<AgentCommercial>) =>
+    request<AgentCommercial>('/commerciaux', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<AgentCommercial>) =>
+    request<AgentCommercial>(`/commerciaux/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  remove: (id: string) =>
+    request<void>(`/commerciaux/${id}`, { method: 'DELETE' }),
+};
+
+// ---- Professionnels (Pros) -----------------------------------------------
+
+export const professionnelsApi = {
+  list: () => request<Professionnel[]>('/professionnels'),
+  create: (data: Partial<Professionnel> & { motDePasse: string }) =>
+    request<Professionnel>('/professionnels', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<Professionnel> & { motDePasse?: string }) =>
+    request<Professionnel>(`/professionnels/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  remove: (id: string) =>
+    request<void>(`/professionnels/${id}`, { method: 'DELETE' }),
 };
 
 // ---- Media (upload) -----------------------------------------------------

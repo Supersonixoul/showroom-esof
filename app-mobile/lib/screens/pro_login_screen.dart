@@ -1,32 +1,19 @@
 import 'package:flutter/material.dart';
 
-import '../services/auth_session.dart';
-import 'clients_list_screen.dart';
+import '../services/pro_session.dart';
+import 'order_catalog_screen.dart';
 
-/// Écran de connexion du mode commercial (spec §6.3). Réutilisé tel quel
-/// (même mécanisme d'authentification admin) par l'Espace des Pros — voir
-/// [destinationBuilder]/[requiredRole].
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({
-    super.key,
-    this.destinationBuilder,
-    this.requiredRole,
-  });
-
-  /// Écran ouvert après connexion réussie. Par défaut [ClientsListScreen]
-  /// (comportement historique de l'Espace commercial).
-  final Widget Function(BuildContext context)? destinationBuilder;
-
-  /// Si renseigné, la connexion est refusée si le rôle du compte ne
-  /// correspond pas (ex. 'ADMIN' pour l'Espace des Pros).
-  final String? requiredRole;
+/// Écran 1 de « Passer commande » : connexion du compte Pro (identifiant /
+/// mot de passe), spec §3.3.
+class ProLoginScreen extends StatefulWidget {
+  const ProLoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<ProLoginScreen> createState() => _ProLoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
+class _ProLoginScreenState extends State<ProLoginScreen> {
+  final _identifiantController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _loading = false;
   String? _error;
@@ -37,24 +24,16 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
     try {
-      await AuthSession.instance.login(
-        _emailController.text.trim(),
+      await ProSession.instance.login(
+        _identifiantController.text.trim(),
         _passwordController.text,
       );
-      if (widget.requiredRole != null &&
-          AuthSession.instance.currentUser.value?.role != widget.requiredRole) {
-        await AuthSession.instance.logout();
-        setState(() => _error = 'Accès réservé aux administrateurs.');
-        return;
-      }
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: widget.destinationBuilder ?? (_) => const ClientsListScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const OrderCatalogScreen()),
       );
     } catch (_) {
-      setState(() => _error = 'Email ou mot de passe incorrect.');
+      setState(() => _error = 'Identifiant ou mot de passe incorrect.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -62,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifiantController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -70,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Connexion commercial')),
+      appBar: AppBar(title: const Text('Connexion Pro')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 360),
@@ -80,9 +59,8 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  controller: _identifiantController,
+                  decoration: const InputDecoration(labelText: 'Identifiant'),
                 ),
                 const SizedBox(height: 16),
                 TextField(

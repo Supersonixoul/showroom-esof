@@ -5,6 +5,8 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { RolesGuard } from './roles.guard';
+import { ProAuthGuard } from './pro-auth.guard';
+import { ProOrAdminGuard } from './pro-or-admin.guard';
 
 @Module({
   imports: [
@@ -15,7 +17,7 @@ import { RolesGuard } from './roles.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RolesGuard],
-  exports: [JwtModule, RolesGuard],
+  providers: [AuthService, JwtStrategy, RolesGuard, ProAuthGuard, ProOrAdminGuard],
+  exports: [JwtModule, RolesGuard, ProAuthGuard, ProOrAdminGuard],
 })
 export class AuthModule {}

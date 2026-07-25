@@ -131,9 +131,10 @@ model Product {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  specs      ProductSpec[]
-  images     ProductImage[]
-  quoteItems QuoteItem[]
+  specs          ProductSpec[]
+  images         ProductImage[]
+  quoteItems     QuoteItem[]
+  ligneCommandes LigneCommande[]
 
   @@map("products")
 }
@@ -257,4 +258,72 @@ model QuoteItem {
   note      String?
 
   @@map("quote_items")
+}
+
+// ---------------------------------------------------------------------------
+// Espace des Pros — professionnels, agents commerciaux ESOF (contacts
+// WhatsApp), commandes passées par les Pros (v3).
+// ---------------------------------------------------------------------------
+
+/// Compte "Pro" (revendeur, électricien, entreprise de construction...) :
+/// authentification par identifiant/mot de passe (hash bcrypt), distincte du
+/// modèle User (comptes internes admin/commercial ESOF de l'Espace commercial).
+model Professionnel {
+  id          String   @id @default(uuid()) @db.Uuid
+  nom         String   @db.VarChar(150)
+  identifiant String   @unique @db.VarChar(50)
+  motDePasse  String   @map("mot_de_passe") @db.VarChar(255)
+  telephone1  String   @map("telephone_1") @db.VarChar(20)
+  telephone2  String?  @map("telephone_2") @db.VarChar(20)
+  actif       Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  commandes Commande[]
+
+  @@map("professionnels")
+}
+
+/// Contact commercial ESOF (nom/prénom/téléphone WhatsApp) destinataire des
+/// commandes envoyées par les Pros. Sans rapport avec Role.COMMERCIAL /
+/// User (Espace commercial) — nommé distinctement pour éviter la confusion.
+model AgentCommercial {
+  id         String   @id @default(uuid()) @db.Uuid
+  nom        String   @db.VarChar(100)
+  prenom     String   @db.VarChar(100)
+  telephone1 String   @map("telephone_1") @db.VarChar(20)
+  telephone2 String?  @map("telephone_2") @db.VarChar(20)
+  actif      Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  commandes Commande[]
+
+  @@map("agents_commerciaux")
+}
+
+model Commande {
+  id              String          @id @default(uuid()) @db.Uuid
+  professionnelId String          @map("professionnel_id") @db.Uuid
+  professionnel   Professionnel   @relation(fields: [professionnelId], references: [id])
+  commercialId    String          @map("commercial_id") @db.Uuid
+  commercial      AgentCommercial @relation(fields: [commercialId], references: [id])
+  dateCommande    DateTime        @default(now()) @map("date_commande")
+  statut          String          @default("ENVOYEE") @db.VarChar(20)
+
+  lignes LigneCommande[]
+
+  @@map("commandes")
+}
+
+model LigneCommande {
+  id             String   @id @default(uuid()) @db.Uuid
+  commandeId     String   @map("commande_id") @db.Uuid
+  commande       Commande @relation(fields: [commandeId], references: [id], onDelete: Cascade)
+  produitId      String   @map("produit_id") @db.Uuid
+  produit        Product  @relation(fields: [produitId], references: [id])
+  quantite       Int
+  libelleProduit String   @map("libelle_produit") @db.VarChar(255)
+
+  @@map("lignes_commande")
 }

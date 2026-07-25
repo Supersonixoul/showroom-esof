@@ -124,3 +124,48 @@ export interface LoginResult {
   accessToken: string;
   user: AuthUser;
 }
+
+// ---- Espace des Pros ------------------------------------------------------
+
+/// Contact commercial ESOF (WhatsApp) — sans rapport avec le rôle
+/// COMMERCIAL/User de l'Espace commercial existant. Endpoint /commerciaux.
+export interface AgentCommercial {
+  id: string;
+  nom: string;
+  prenom: string;
+  telephone1: string;
+  telephone2?: string | null;
+  actif: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Professionnel {
+  id: string;
+  nom: string;
+  identifiant: string;
+  telephone1: string;
+  telephone2?: string | null;
+  actif: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LigneCommande {
+  id: string;
+  produitId: string;
+  produit?: Product;
+  quantite: number;
+  libelleProduit: string;
+}
+
+export interface Commande {
+  id: string;
+  professionnelId: string;
+  professionnel?: Professionnel;
+  commercialId: string;
+  commercial?: AgentCommercial;
+  dateCommande: string;
+  statut: string;
+  lignes: LigneCommande[];
+}

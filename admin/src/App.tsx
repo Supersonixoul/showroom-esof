@@ -9,6 +9,8 @@ import { CategoriesPage } from './pages/CategoriesPage';
 import { SubcategoriesPage } from './pages/SubcategoriesPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { VideosPage } from './pages/VideosPage';
+import { CommerciauxPage } from './pages/CommerciauxPage';
+import { ProfessionnelsPage } from './pages/ProfessionnelsPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { token } = useAuth();
@@ -37,6 +39,8 @@ function App() {
         <Route path="/subcategories" element={<SubcategoriesPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/videos" element={<VideosPage />} />
+        <Route path="/commerciaux" element={<CommerciauxPage />} />
+        <Route path="/professionnels" element={<ProfessionnelsPage />} />
       </Route>
     </Routes>
   );

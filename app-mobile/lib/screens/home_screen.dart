@@ -6,13 +6,17 @@ import '../models/catalog_models.dart';
 import '../services/api_service.dart';
 import '../services/auth_session.dart';
 import '../services/catalog_repository.dart';
+import '../services/pro_session.dart';
 import '../theme/app_colors.dart';
 import 'brands_screen.dart';
 import 'categories_screen.dart';
 import 'characteristics_screen.dart';
 import 'clients_list_screen.dart';
 import 'login_screen.dart';
+import 'order_catalog_screen.dart';
 import 'product_detail_screen.dart';
+import 'pro_login_screen.dart';
+import 'professionnels_list_screen.dart';
 import 'server_settings_screen.dart';
 
 /// Écran d'accueil du mode client (spec §6.2) : en-tête compact (logo +
@@ -251,12 +255,38 @@ class _CompactHeader extends StatelessWidget {
                     ),
                   );
                   break;
+                case 3:
+                  _openEspaceDesPros(context);
+                  break;
+                case 4:
+                  _openPasserCommande(context);
+                  break;
               }
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 0, child: Text('Espace commercial')),
-              PopupMenuItem(value: 1, child: Text('Marques')),
-              PopupMenuItem(value: 2, child: Text('Caractéristiques')),
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 0, child: Text('Espace commercial')),
+              const PopupMenuItem(value: 1, child: Text('Marques')),
+              const PopupMenuItem(value: 2, child: Text('Caractéristiques')),
+              PopupMenuItem(
+                value: 3,
+                child: Row(
+                  children: const [
+                    Icon(Icons.business_center, size: 18),
+                    SizedBox(width: 8),
+                    Text('Espace des Pros'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 4,
+                child: Row(
+                  children: const [
+                    Icon(Icons.shopping_cart_checkout, size: 18),
+                    SizedBox(width: 8),
+                    Text('Passer commande'),
+                  ],
+                ),
+              ),
             ],
           ),
           IconButton(
@@ -270,6 +300,43 @@ class _CompactHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Ouvre l'Espace des Pros (gestion admin des comptes Pro) : réservé aux
+/// administrateurs, réutilise le même mécanisme d'authentification que
+/// l'Espace commercial (spec §Espace des Pros).
+void _openEspaceDesPros(BuildContext context) {
+  final user = AuthSession.instance.currentUser.value;
+  if (user != null && user.role == 'ADMIN') {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ProfessionnelsListScreen()),
+    );
+  } else if (user != null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Accès réservé aux administrateurs.')),
+    );
+  } else {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LoginScreen(
+          destinationBuilder: (_) => const ProfessionnelsListScreen(),
+          requiredRole: 'ADMIN',
+        ),
+      ),
+    );
+  }
+}
+
+/// Ouvre « Passer commande » : réservé aux comptes Pro authentifiés (session
+/// persistante via [ProSession]).
+void _openPasserCommande(BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => ProSession.instance.currentPro.value != null
+          ? const OrderCatalogScreen()
+          : const ProLoginScreen(),
+    ),
+  );
 }
 
 const double _kCategoryTileWidth = 68;
