@@ -64,16 +64,18 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
     return buffer.toString();
   }
 
-  Future<void> _send() async {
-    final lines = OrderCart.instance.lines.value;
+  /// Valide et sauvegarde la commande en cours via l'endpoint existant
+  /// (POST /commandes, réutilisé par `_send` et `_save`). Retourne `null`
+  /// sans perdre les lignes du panier en cas d'erreur (affichée dans `_error`).
+  Future<CommandePro?> _createOrder(List<CartLine> lines) async {
     final commercial = _selectedCommercial;
     if (lines.isEmpty) {
       setState(() => _error = 'Le panier est vide.');
-      return;
+      return null;
     }
     if (commercial == null) {
       setState(() => _error = 'Choisissez un commercial.');
-      return;
+      return null;
     }
     setState(() {
       _sending = true;
@@ -81,24 +83,30 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
       _pendingMessage = null;
     });
 
-    CommandePro created;
     try {
-      created = await _api.createCommande(_token, commercialId: commercial.id, lignes: lines);
+      final created = await _api.createCommande(_token, commercialId: commercial.id, lignes: lines);
+      _createdNumero = created.numero;
+      return created;
     } on ProSessionExpiredException {
-      if (!mounted) return;
+      if (!mounted) return null;
       await performProLogout(context, message: 'Session expirée, veuillez vous reconnecter.');
-      return;
+      return null;
     } catch (e) {
       setState(() {
         _sending = false;
         _error = "Erreur lors de l'enregistrement de la commande : $e";
       });
-      return;
+      return null;
     }
-    _createdNumero = created.numero;
+  }
+
+  Future<void> _send() async {
+    final lines = OrderCart.instance.lines.value;
+    final created = await _createOrder(lines);
+    if (created == null) return;
 
     final message = _buildMessage(lines, created.numero);
-    final phone = commercial.telephone1.replaceFirst('+', '');
+    final phone = _selectedCommercial!.telephone1.replaceFirst('+', '');
     final uri = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
     var launched = false;
     try {
@@ -117,6 +125,23 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
       _sending = false;
       _pendingMessage = message;
     });
+  }
+
+  /// Bouton « Enregistrer » : termine la commande en cours en la validant/
+  /// sauvegardant via le même endpoint que `_send` (POST /commandes), sans
+  /// passer par l'envoi WhatsApp. Affiche une confirmation puis ferme
+  /// l'écran (flux existant : pop avec le numéro de commande).
+  Future<void> _save() async {
+    final lines = OrderCart.instance.lines.value;
+    final created = await _createOrder(lines);
+    if (created == null) return;
+
+    if (!mounted) return;
+    OrderCart.instance.clear();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Commande ${created.numero} enregistrée avec succès.')),
+    );
+    Navigator.of(context).pop(created.numero);
   }
 
   Future<void> _copyPendingMessage() async {
@@ -233,7 +258,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
                     ],
                     const SizedBox(height: 12),
                     FilledButton.icon(
-                      onPressed: (_sending || lines.isEmpty) ? null : _send,
+                      onPressed: (_sending || lines.isEmpty) ? null : _save,
                       icon: _sending
                           ? const SizedBox(
                               width: 16,
@@ -243,7 +268,13 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Icon(Icons.send),
+                          : const Icon(Icons.save),
+                      label: const Text('Enregistrer'),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: (_sending || lines.isEmpty) ? null : _send,
+                      icon: const Icon(Icons.send),
                       label: const Text('Envoyer par WhatsApp'),
                     ),
                   ],

@@ -139,20 +139,39 @@ class _OrderCatalogScreenState extends State<OrderCatalogScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(12),
-            child: TextField(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: 'Rechercher : désignation, référence, gamme…',
-                border: const OutlineInputBorder(),
-                suffixIcon: _query.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.clear),
-                        tooltip: 'Effacer',
-                        onPressed: _clearSearch,
-                      ),
+            child: SizedBox(
+              height: 42,
+              child: TextField(
+                controller: _searchController,
+                onChanged: _onSearchChanged,
+                textAlignVertical: TextAlignVertical.center,
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: 'Rechercher : désignation, référence, gamme…',
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(9999),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(9999),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(9999),
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
+                  ),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear),
+                          tooltip: 'Effacer',
+                          onPressed: _clearSearch,
+                        ),
+                ),
               ),
             ),
           ),
