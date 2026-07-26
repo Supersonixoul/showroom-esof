@@ -52,14 +52,14 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
   }
 
   Future<void> _create() async {
-    final numero = await Navigator.of(context).push<String>(
+    final numeroClient = await Navigator.of(context).push<int>(
       MaterialPageRoute(builder: (_) => const OrderCatalogScreen()),
     );
     if (!mounted) return;
     _load();
-    if (numero != null) {
+    if (numeroClient != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Commande $numero enregistrée.')),
+        SnackBar(content: Text('Commande n° $numeroClient enregistrée.')),
       );
     }
   }
@@ -127,7 +127,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                   child: ListTile(
                     onTap: () => _edit(commande),
                     title: Text(
-                      commande.numero,
+                      'Commande n° ${commande.numeroClient}',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text('$date — ${commande.lignes.length} article(s) — $montant'),

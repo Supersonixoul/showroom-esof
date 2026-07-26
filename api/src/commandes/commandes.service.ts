@@ -10,7 +10,7 @@ import { UpdateCommandeDto } from './dto/update-commande.dto';
 import { TraitementCommandeDto } from './dto/traitement-commande.dto';
 import { AnnulationCommandeDto } from './dto/annulation-commande.dto';
 import { ProformaService } from './proforma.service';
-import type { Prisma } from '../../generated/prisma/client';
+import { Prisma } from '../../generated/prisma/client';
 
 const COMMANDE_INCLUDE = {
   professionnel: {
@@ -59,26 +59,62 @@ export class CommandesService {
       }
     }
 
-    const commande = await this.prisma.$transaction(async (tx) => {
-      const numero = await this.generateNumeroCommande(tx, professionnel.code);
-      return tx.commande.create({
-        data: {
-          professionnelId,
-          commercialId: dto.commercialId,
-          numero,
-          lignes: {
-            create: dto.lignes.map((ligne) => ({
-              produitId: ligne.produitId,
-              quantite: ligne.quantite,
-              libelleProduit: produitsById.get(ligne.produitId)!.name,
-            })),
-          },
-        },
-        include: COMMANDE_INCLUDE,
-      });
-    });
+    return this.createWithRetry(professionnelId, dto, professionnel.code, produitsById);
+  }
 
-    return commande;
+  /// Crée la commande dans une transaction interactive (numero + numeroClient
+  /// calculés et insérés atomiquement). En cas de créations simultanées pour
+  /// le même client, la contrainte @@unique([professionnelId, numeroClient])
+  /// peut être violée (P2002) : on réessaie une seule fois (le recalcul du
+  /// max se fera avec la commande concurrente déjà commitée).
+  private async createWithRetry(
+    professionnelId: string,
+    dto: CreateCommandeDto,
+    clientCode: string,
+    produitsById: Map<string, { name: string }>,
+    attempt = 0,
+  ) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const numero = await this.generateNumeroCommande(tx, clientCode);
+        const numeroClient = await this.generateNumeroClient(tx, professionnelId);
+        return tx.commande.create({
+          data: {
+            professionnelId,
+            commercialId: dto.commercialId,
+            numero,
+            numeroClient,
+            lignes: {
+              create: dto.lignes.map((ligne) => ({
+                produitId: ligne.produitId,
+                quantite: ligne.quantite,
+                libelleProduit: produitsById.get(ligne.produitId)!.name,
+              })),
+            },
+          },
+          include: COMMANDE_INCLUDE,
+        });
+      });
+    } catch (e) {
+      if (attempt === 0 && e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        return this.createWithRetry(professionnelId, dto, clientCode, produitsById, attempt + 1);
+      }
+      throw e;
+    }
+  }
+
+  /// Calcule le prochain numéro de commande PAR CLIENT (1, 2, 3… propre à
+  /// chaque professionnel) — max(numeroClient) + 1, ou 1 si aucune commande.
+  /// Jamais renuméroté après coup (une suppression ne comble pas le trou).
+  private async generateNumeroClient(
+    tx: Prisma.TransactionClient,
+    professionnelId: string,
+  ): Promise<number> {
+    const { _max } = await tx.commande.aggregate({
+      where: { professionnelId },
+      _max: { numeroClient: true },
+    });
+    return (_max.numeroClient ?? 0) + 1;
   }
 
   /// Génération atomique du numéro de commande (format XXX99-9999) — le

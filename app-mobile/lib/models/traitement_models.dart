@@ -61,6 +61,7 @@ class ProfessionnelInfo {
 /// Statuts possibles : ENVOYEE | EN_TRAITEMENT | PROFORMA_EMISE | MODIFIEE | ANNULEE.
 class CommandeTraitement {
   final String id;
+  final int numeroClient;
   final ProfessionnelInfo professionnel;
   final DateTime dateCommande;
   final String statut;
@@ -73,6 +74,7 @@ class CommandeTraitement {
 
   CommandeTraitement({
     required this.id,
+    required this.numeroClient,
     required this.professionnel,
     required this.dateCommande,
     required this.statut,
@@ -87,6 +89,7 @@ class CommandeTraitement {
   factory CommandeTraitement.fromJson(Map<String, dynamic> json) =>
       CommandeTraitement(
         id: json['id'] as String,
+        numeroClient: json['numeroClient'] as int,
         professionnel: ProfessionnelInfo.fromJson(
             json['professionnel'] as Map<String, dynamic>),
         dateCommande: DateTime.parse(json['dateCommande'] as String),

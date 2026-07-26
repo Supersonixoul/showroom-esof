@@ -114,10 +114,15 @@ class LigneCommandePro {
 /// Commande telle que vue par le compte Pro propriétaire (rubrique
 /// "Commander") — `numero` est immuable, attribué par le backend à la
 /// création (format XXX99-9999, voir CommandesService.generateNumeroCommande).
+/// `numeroClient` est le numéro d'ordre PROPRE à ce client (1, 2, 3…,
+/// indépendant des autres clients) — c'est celui affiché à l'écran
+/// ("Commande n° X"), `numero` restant réservé aux usages techniques
+/// (message WhatsApp, nom de fichier proforma).
 /// Statuts possibles : ENVOYEE | EN_TRAITEMENT | PROFORMA_EMISE | MODIFIEE | ANNULEE.
 class CommandePro {
   final String id;
   final String numero;
+  final int numeroClient;
   final DateTime dateCommande;
   final String statut;
   final List<LigneCommandePro> lignes;
@@ -125,6 +130,7 @@ class CommandePro {
   CommandePro({
     required this.id,
     required this.numero,
+    required this.numeroClient,
     required this.dateCommande,
     required this.statut,
     required this.lignes,
@@ -133,6 +139,7 @@ class CommandePro {
   factory CommandePro.fromJson(Map<String, dynamic> json) => CommandePro(
         id: json['id'] as String,
         numero: json['numero'] as String,
+        numeroClient: json['numeroClient'] as int,
         dateCommande: DateTime.parse(json['dateCommande'] as String),
         statut: json['statut'] as String,
         lignes: (json['lignes'] as List<dynamic>)

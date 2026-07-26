@@ -102,11 +102,11 @@ class _OrderCatalogScreenState extends State<OrderCatalogScreen> {
                     icon: const Icon(Icons.shopping_cart),
                     tooltip: 'Voir le panier',
                     onPressed: () async {
-                      final numero = await Navigator.of(context).push<String>(
+                      final numeroClient = await Navigator.of(context).push<int>(
                         MaterialPageRoute(builder: (_) => const OrderSummaryScreen()),
                       );
-                      if (numero != null && context.mounted) {
-                        Navigator.of(context).pop(numero);
+                      if (numeroClient != null && context.mounted) {
+                        Navigator.of(context).pop(numeroClient);
                       }
                     },
                   ),

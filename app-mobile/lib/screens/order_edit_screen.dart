@@ -223,7 +223,7 @@ class _OrderEditScreenState extends State<OrderEditScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Commande ${widget.commande.numero}'),
+        title: Text('Commande n° ${widget.commande.numeroClient}'),
         actions: const [ProLogoutAction()],
       ),
       body: _readOnly ? _buildReadOnly() : _buildEditable(),

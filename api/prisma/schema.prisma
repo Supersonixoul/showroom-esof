@@ -336,9 +336,16 @@ model Commande {
   /// à la création, voir CommandesService.generateNumeroCommande.
   numero String @unique @db.VarChar(10)
 
+  /// Numéro de commande PAR CLIENT (1, 2, 3… indépendant des autres
+  /// clients), distinct de `numero` (numéro global immuable). Calculé à la
+  /// création comme max(numeroClient) + 1 pour ce client — jamais
+  /// renuméroté (une suppression ne comble pas le trou).
+  numeroClient Int @map("numero_client")
+
   lignes     LigneCommande[]
   historique HistoriqueCommande[]
 
+  @@unique([professionnelId, numeroClient])
   @@map("commandes")
 }
 

@@ -269,6 +269,7 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
         setState(() {
           _commande = CommandeTraitement(
             id: saved.id,
+            numeroClient: saved.numeroClient,
             professionnel: saved.professionnel,
             dateCommande: saved.dateCommande,
             statut: 'PROFORMA_EMISE',
