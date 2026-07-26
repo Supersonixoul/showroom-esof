@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/pro_session.dart';
 import '../widgets/password_field.dart';
-import 'order_catalog_screen.dart';
+import 'orders_list_screen.dart';
 
 /// Écran 1 de « Passer commande » : connexion du compte Pro (identifiant /
 /// mot de passe), spec §3.3.
@@ -31,7 +31,7 @@ class _ProLoginScreenState extends State<ProLoginScreen> {
       );
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const OrderCatalogScreen()),
+        MaterialPageRoute(builder: (_) => const OrdersListScreen()),
       );
     } catch (_) {
       setState(() => _error = 'Identifiant ou mot de passe incorrect.');
