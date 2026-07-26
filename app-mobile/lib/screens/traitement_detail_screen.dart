@@ -211,6 +211,31 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
     return buffer.toString();
   }
 
+  String _buildMessageEnvoi() {
+    final date = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
+    final buffer = StringBuffer();
+    buffer.writeln('🛒 COMMANDE');
+    buffer.writeln('━━━━━━━━━━━━━━');
+    buffer.writeln('Client : ${_commande.professionnel.nom}');
+    buffer.writeln('Date : $date');
+    buffer.writeln('━━━━━━━━━━━━━━');
+    for (var i = 0; i < _lignes.length; i++) {
+      final l = _lignes[i].ligne;
+      buffer.writeln('${i + 1}. ${l.libelleProduit} — Qté : ${l.quantite}');
+    }
+    buffer.writeln('━━━━━━━━━━━━━━');
+    buffer.write('Total : ${_lignes.length} article(s)');
+    return buffer.toString();
+  }
+
+  Future<void> _envoyerWhatsAppManuel() async {
+    if (_lignes.isEmpty) {
+      setState(() => _error = 'La commande doit contenir au moins un article.');
+      return;
+    }
+    await _envoyerWhatsApp(_buildMessageEnvoi());
+  }
+
   Future<void> _envoyerWhatsApp(String message) async {
     final phone = _commande.professionnel.telephone1.replaceFirst('+', '');
     final uri =
@@ -691,6 +716,12 @@ class _TraitementDetailScreenState extends State<TraitementDetailScreen> {
                             )
                           : const Icon(Icons.save),
                       label: const Text('Enregistrer les modifications'),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _envoyerWhatsAppManuel,
+                      icon: const Icon(Icons.send),
+                      label: const Text('Envoyer par WhatsApp'),
                     ),
                     const SizedBox(height: 8),
                     Tooltip(
