@@ -129,7 +129,7 @@ class _ProfessionnelsListScreenState extends State<ProfessionnelsListScreen> {
               itemBuilder: (context, index) {
                 final pro = list[index];
                 return ListTile(
-                  title: Text(pro.nom),
+                  title: Text('${pro.nom} (${pro.code})'),
                   subtitle: Text([pro.identifiant, pro.telephone1].join(' · ')),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/pro_models.dart';
 import '../services/auth_session.dart';
 import '../services/pro_api_service.dart';
+import '../services/pro_session.dart';
+import '../utils/client_code_preview.dart';
 import '../widgets/password_field.dart';
 
 /// Formulaire de création/édition d'un compte Pro (Espace des Pros, admin).
@@ -21,11 +24,14 @@ class _ProfessionnelFormScreenState extends State<ProfessionnelFormScreen> {
   final _api = ProApiService();
   late final TextEditingController _nomController;
   late final TextEditingController _identifiantController;
+  late final TextEditingController _codeController;
   final _passwordController = TextEditingController();
   late final TextEditingController _telephone1Controller;
   late final TextEditingController _telephone2Controller;
   bool _saving = false;
   String? _error;
+  String? _codeError;
+  bool _codeManuallyEdited = false;
 
   bool get _isEditing => widget.professionnel != null;
 
@@ -37,14 +43,31 @@ class _ProfessionnelFormScreenState extends State<ProfessionnelFormScreen> {
     final pro = widget.professionnel;
     _nomController = TextEditingController(text: pro?.nom ?? '');
     _identifiantController = TextEditingController(text: pro?.identifiant ?? '');
+    _codeController = TextEditingController(text: pro?.code ?? '');
     _telephone1Controller = TextEditingController(text: pro?.telephone1 ?? '');
     _telephone2Controller = TextEditingController(text: pro?.telephone2 ?? '');
+    if (!_isEditing) {
+      _nomController.addListener(_updateCodePreview);
+    }
+  }
+
+  /// À la création, pré-remplit/actualise l'aperçu du code tant que
+  /// l'utilisateur ne l'a pas modifié à la main (le backend reste la
+  /// source de vérité en cas de collision).
+  void _updateCodePreview() {
+    if (_codeManuallyEdited) return;
+    final preview = previewClientCode(_nomController.text);
+    _codeController.value = TextEditingValue(
+      text: preview ?? '',
+      selection: TextSelection.collapsed(offset: (preview ?? '').length),
+    );
   }
 
   @override
   void dispose() {
     _nomController.dispose();
     _identifiantController.dispose();
+    _codeController.dispose();
     _passwordController.dispose();
     _telephone1Controller.dispose();
     _telephone2Controller.dispose();
@@ -54,22 +77,30 @@ class _ProfessionnelFormScreenState extends State<ProfessionnelFormScreen> {
   Future<void> _submit() async {
     final nom = _nomController.text.trim();
     final identifiant = _identifiantController.text.trim();
+    final code = _codeController.text.trim().toUpperCase();
     final telephone1 = _telephone1Controller.text.trim();
     final telephone2 = _telephone2Controller.text.trim();
     final motDePasse = _passwordController.text;
 
     if (nom.isEmpty || identifiant.isEmpty || telephone1.isEmpty) {
-      setState(() => _error = 'Nom, identifiant et téléphone sont obligatoires.');
+      setState(() {
+        _error = 'Nom, identifiant et téléphone sont obligatoires.';
+        _codeError = null;
+      });
       return;
     }
     if (!_isEditing && motDePasse.isEmpty) {
-      setState(() => _error = 'Le mot de passe est obligatoire à la création.');
+      setState(() {
+        _error = 'Le mot de passe est obligatoire à la création.';
+        _codeError = null;
+      });
       return;
     }
 
     setState(() {
       _saving = true;
       _error = null;
+      _codeError = null;
     });
     try {
       if (_isEditing) {
@@ -81,6 +112,7 @@ class _ProfessionnelFormScreenState extends State<ProfessionnelFormScreen> {
           motDePasse: motDePasse.isEmpty ? null : motDePasse,
           telephone1: telephone1,
           telephone2: telephone2,
+          code: code,
         );
       } else {
         await _api.createProfessionnel(
@@ -90,10 +122,19 @@ class _ProfessionnelFormScreenState extends State<ProfessionnelFormScreen> {
           motDePasse: motDePasse,
           telephone1: telephone1,
           telephone2: telephone2,
+          code: code,
         );
       }
       if (!mounted) return;
       Navigator.of(context).pop(true);
+    } on ProConflictException catch (e) {
+      setState(() {
+        if (e.message.toLowerCase().contains('code')) {
+          _codeError = e.message;
+        } else {
+          _error = e.message;
+        }
+      });
     } catch (e) {
       setState(() => _error = 'Erreur : $e');
     } finally {
@@ -120,6 +161,22 @@ class _ProfessionnelFormScreenState extends State<ProfessionnelFormScreen> {
             TextField(
               controller: _identifiantController,
               decoration: const InputDecoration(labelText: 'Identifiant *'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _codeController,
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp('[A-Za-z0-9]')),
+                LengthLimitingTextInputFormatter(3),
+                _UpperCaseTextFormatter(),
+              ],
+              onChanged: (_) => _codeManuallyEdited = true,
+              decoration: InputDecoration(
+                labelText: 'Code client',
+                helperText: 'Généré automatiquement à partir du nom, modifiable.',
+                errorText: _codeError,
+              ),
             ),
             const SizedBox(height: 12),
             PasswordField(
@@ -160,5 +217,17 @@ class _ProfessionnelFormScreenState extends State<ProfessionnelFormScreen> {
         ),
       ),
     );
+  }
+}
+
+/// Force la saisie en majuscules (code client), sans modifier la position
+/// du curseur.
+class _UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
   }
 }

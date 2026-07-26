@@ -18,6 +18,16 @@ class ProApiService {
     if (response.statusCode == 401) {
       throw ProSessionExpiredException();
     }
+    if (response.statusCode == 409) {
+      String message = response.body;
+      try {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        message = (data['message'] as String?) ?? message;
+      } catch (_) {
+        // Corps de réponse non-JSON : on garde le texte brut.
+      }
+      throw ProConflictException(message);
+    }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception('Erreur API (${response.statusCode}) : ${response.body}');
     }
@@ -43,6 +53,7 @@ class ProApiService {
     required String motDePasse,
     required String telephone1,
     String? telephone2,
+    String? code,
   }) async {
     final response = await http.post(
       Uri.parse('${ApiService.baseUrl}/professionnels'),
@@ -53,6 +64,7 @@ class ProApiService {
         'motDePasse': motDePasse,
         'telephone1': telephone1,
         if (telephone2 != null && telephone2.isNotEmpty) 'telephone2': telephone2,
+        if (code != null && code.isNotEmpty) 'code': code,
       }),
     );
     _checkOk(response);
@@ -66,6 +78,7 @@ class ProApiService {
     String? motDePasse,
     required String telephone1,
     String? telephone2,
+    String? code,
   }) async {
     final response = await http.patch(
       Uri.parse('${ApiService.baseUrl}/professionnels/$id'),
@@ -76,6 +89,7 @@ class ProApiService {
         if (motDePasse != null && motDePasse.isNotEmpty) 'motDePasse': motDePasse,
         'telephone1': telephone1,
         'telephone2': telephone2 ?? '',
+        if (code != null && code.isNotEmpty) 'code': code,
       }),
     );
     _checkOk(response);

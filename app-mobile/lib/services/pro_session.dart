@@ -11,6 +11,17 @@ import 'api_service.dart';
 /// réseau/API pour déclencher la déconnexion automatique.
 class ProSessionExpiredException implements Exception {}
 
+/// Levée par [ProApiService] quand l'API répond 409 (conflit — identifiant
+/// ou code déjà utilisé par un autre Professionnel).
+class ProConflictException implements Exception {
+  ProConflictException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class ProUser {
   final String id;
   final String nom;

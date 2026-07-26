@@ -272,6 +272,7 @@ model Professionnel {
   id          String   @id @default(uuid()) @db.Uuid
   nom         String   @db.VarChar(150)
   identifiant String   @unique @db.VarChar(50)
+  code        String   @unique @db.VarChar(3)
   motDePasse  String   @map("mot_de_passe") @db.VarChar(255)
   telephone1  String   @map("telephone_1") @db.VarChar(20)
   telephone2  String?  @map("telephone_2") @db.VarChar(20)

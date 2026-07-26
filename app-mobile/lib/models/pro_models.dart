@@ -5,6 +5,7 @@ class Professionnel {
   final String id;
   final String nom;
   final String identifiant;
+  final String code;
   final String telephone1;
   final String? telephone2;
   final bool actif;
@@ -13,6 +14,7 @@ class Professionnel {
     required this.id,
     required this.nom,
     required this.identifiant,
+    required this.code,
     required this.telephone1,
     this.telephone2,
     this.actif = true,
@@ -22,6 +24,7 @@ class Professionnel {
         id: json['id'] as String,
         nom: json['nom'] as String,
         identifiant: json['identifiant'] as String,
+        code: json['code'] as String? ?? '',
         telephone1: json['telephone1'] as String,
         telephone2: json['telephone2'] as String?,
         actif: json['actif'] as bool? ?? true,
