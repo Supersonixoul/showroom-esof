@@ -6,7 +6,17 @@ import { PasswordInput } from '../components/PasswordInput';
 
 function conflictMessage(err: unknown, fallback: string) {
   const message = (err as Error)?.message ?? '';
-  return message.startsWith('409') ? fallback : message;
+  if (!message.startsWith('409')) return message;
+  const jsonStart = message.indexOf('{');
+  if (jsonStart !== -1) {
+    try {
+      const parsed = JSON.parse(message.slice(jsonStart)) as { message?: string };
+      if (parsed.message) return parsed.message;
+    } catch {
+      // Corps non-JSON : on garde le message de repli.
+    }
+  }
+  return fallback;
 }
 
 export function ProfessionnelsPage() {
@@ -19,6 +29,7 @@ export function ProfessionnelsPage() {
   const [showForm, setShowForm] = useState(false);
   const [nom, setNom] = useState('');
   const [identifiant, setIdentifiant] = useState('');
+  const [code, setCode] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [telephone1, setTelephone1] = useState('');
   const [telephone2, setTelephone2] = useState('');
@@ -70,6 +81,7 @@ export function ProfessionnelsPage() {
     setShowForm(false);
     setNom('');
     setIdentifiant('');
+    setCode('');
     setMotDePasse('');
     setTelephone1('');
     setTelephone2('');
@@ -85,6 +97,7 @@ export function ProfessionnelsPage() {
     setEditingId(pro.id);
     setNom(pro.nom);
     setIdentifiant(pro.identifiant);
+    setCode(pro.code);
     setMotDePasse('');
     setTelephone1(pro.telephone1);
     setTelephone2(pro.telephone2 ?? '');
@@ -93,12 +106,14 @@ export function ProfessionnelsPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const codeValue = code.trim().toUpperCase();
     if (editingId) {
       updateMutation.mutate({
         id: editingId,
         data: {
           nom,
           identifiant,
+          code: codeValue,
           telephone1,
           telephone2: telephone2 || undefined,
           ...(motDePasse ? { motDePasse } : {}),
@@ -108,6 +123,7 @@ export function ProfessionnelsPage() {
       createMutation.mutate({
         nom,
         identifiant,
+        code: codeValue,
         motDePasse,
         telephone1,
         telephone2: telephone2 || undefined,
@@ -167,6 +183,17 @@ export function ProfessionnelsPage() {
                 />
               </label>
               <label>
+                Code client
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  maxLength={3}
+                  pattern="[A-Z0-9]{3}"
+                  title="3 caractères alphanumériques (A-Z, 0-9)"
+                  required
+                />
+              </label>
+              <label>
                 Mot de passe
                 <PasswordInput
                   value={motDePasse}
@@ -215,6 +242,7 @@ export function ProfessionnelsPage() {
               <tr>
                 <th>Nom</th>
                 <th>Identifiant</th>
+                <th>Code</th>
                 <th>Téléphone 1</th>
                 <th>Téléphone 2</th>
                 <th>Actif</th>
@@ -226,6 +254,7 @@ export function ProfessionnelsPage() {
                 <tr key={pro.id}>
                   <td>{pro.nom}</td>
                   <td>{pro.identifiant}</td>
+                  <td>{pro.code}</td>
                   <td>{pro.telephone1}</td>
                   <td className="muted">{pro.telephone2 || '—'}</td>
                   <td>{pro.actif ? 'Oui' : 'Non'}</td>
@@ -249,7 +278,7 @@ export function ProfessionnelsPage() {
               ))}
               {sortedProfessionnels.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="muted">
+                  <td colSpan={7} className="muted">
                     Aucun client.
                   </td>
                 </tr>

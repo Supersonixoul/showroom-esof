@@ -145,6 +145,7 @@ export interface Professionnel {
   id: string;
   nom: string;
   identifiant: string;
+  code: string;
   telephone1: string;
   telephone2?: string | null;
   actif: boolean;
