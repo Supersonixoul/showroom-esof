@@ -57,6 +57,16 @@ class _OrderCatalogScreenState extends State<OrderCatalogScreen> {
     _debounce = Timer(const Duration(milliseconds: 400), () => _runSearch(query));
   }
 
+  void _clearSearch() {
+    _debounce?.cancel();
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _searchResults = null;
+      _searchLoading = false;
+    });
+  }
+
   Future<void> _runSearch(String query) async {
     setState(() => _searchLoading = true);
     try {
@@ -127,10 +137,17 @@ class _OrderCatalogScreenState extends State<OrderCatalogScreen> {
             child: TextField(
               controller: _searchController,
               onChanged: _onSearchChanged,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                labelText: 'Rechercher un produit',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: 'Rechercher : désignation, référence, gamme…',
+                border: const OutlineInputBorder(),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Effacer',
+                        onPressed: _clearSearch,
+                      ),
               ),
             ),
           ),
@@ -148,7 +165,7 @@ class _OrderCatalogScreenState extends State<OrderCatalogScreen> {
     }
     final items = _searchResults;
     if (items == null || items.isEmpty) {
-      return const Center(child: Text('Aucun produit trouvé.'));
+      return Center(child: Text('Aucun produit trouvé pour « $_query ».'));
     }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12),

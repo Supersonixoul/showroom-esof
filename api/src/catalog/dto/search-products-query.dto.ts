@@ -1,7 +1,7 @@
-import { IsString, MinLength } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class SearchProductsQueryDto {
+  @IsOptional()
   @IsString()
-  @MinLength(2)
-  q: string;
+  q?: string;
 }

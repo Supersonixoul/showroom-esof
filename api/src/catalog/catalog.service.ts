@@ -376,24 +376,35 @@ export class CatalogService {
   }
 
   /**
-   * Recherche produit (accueil mobile) — correspondance partielle insensible
-   * à la casse sur la désignation OU la référence. Mêmes règles de
-   * visibilité en cascade que le reste du catalogue public.
+   * Recherche produit (accueil mobile + écran « Commander ») — correspondance
+   * partielle insensible à la casse sur la désignation, la référence OU le
+   * nom de la gamme. Mêmes règles de visibilité en cascade que le reste du
+   * catalogue public. `q` vide ou < 2 caractères (après trim) renvoie un
+   * tableau vide sans requête base de données. Le prix n'est jamais renvoyé
+   * ici, comme pour le reste de l'API publique (voir `disponible`/
+   * `quantiteStock`).
    */
-  async searchProducts(q: string) {
+  async searchProducts(q?: string) {
+    const term = (q ?? '').trim();
+    if (term.length < 2) {
+      return [];
+    }
+
     const visibleCategoryIds = await this.getVisibleCategoryIds();
     const products = await this.prisma.product.findMany({
       where: {
         isActive: true,
         categoryId: { in: Array.from(visibleCategoryIds) },
         OR: [
-          { name: { contains: q, mode: 'insensitive' } },
-          { reference: { contains: q, mode: 'insensitive' } },
+          { name: { contains: term, mode: 'insensitive' } },
+          { reference: { contains: term, mode: 'insensitive' } },
+          { gamme: { name: { contains: term, mode: 'insensitive' } } },
         ],
       },
       include: {
         brand: true,
         category: true,
+        gamme: true,
         images: { orderBy: { position: 'asc' }, take: 1 },
       },
       orderBy: { name: 'asc' },
@@ -409,6 +420,7 @@ export class CatalogService {
       image: product.images[0] ? buildImageVariants(product.images[0].url) : null,
       brand: product.brand ? { id: product.brand.id, name: product.brand.name } : null,
       category: { id: product.category.id, name: product.category.name },
+      gamme: product.gamme ? { id: product.gamme.id, name: product.gamme.name } : null,
     }));
   }
 }
