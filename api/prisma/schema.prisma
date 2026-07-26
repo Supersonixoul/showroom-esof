@@ -330,33 +330,38 @@ model Commande {
   numeroProforma String?   @unique @map("numero_proforma") @db.VarChar(20)
   dateProforma   DateTime? @map("date_proforma")
 
+  /// Année civile de la commande — redondante avec `dateCommande` mais
+  /// nécessaire en colonne dédiée pour la contrainte d'unicité par
+  /// client/année et le calcul de `sequence` sans recalcul à partir d'un
+  /// DateTime à chaque requête.
+  annee Int
+
+  /// Séquence de la commande PAR CLIENT ET PAR ANNÉE (1, 2, 3… repart à 1
+  /// à chaque changement d'année, pour chaque client) — combinée au code
+  /// du client et à `annee` pour former `numero`. Calculée à la création
+  /// comme max(sequence) + 1 pour ce client sur cette année — jamais
+  /// renumérotée (une suppression ne comble pas le trou).
+  sequence Int
+
   /// Numéro unique et immuable de la commande, format XXX99-9999 (code
-  /// client 3 caractères + année civile 2 chiffres + séquence globale
-  /// annuelle 4 chiffres, ex: RGF26-0015) — généré côté backend uniquement
-  /// à la création, voir CommandesService.generateNumeroCommande.
+  /// client 3 caractères + année civile 2 chiffres + séquence annuelle
+  /// PAR CLIENT 4 chiffres, ex: AMN26-0001) — généré côté backend
+  /// uniquement à la création, voir CommandesService.generateNumeroCommande.
   numero String @unique @db.VarChar(10)
 
   /// Numéro de commande PAR CLIENT (1, 2, 3… indépendant des autres
-  /// clients), distinct de `numero` (numéro global immuable). Calculé à la
-  /// création comme max(numeroClient) + 1 pour ce client — jamais
-  /// renuméroté (une suppression ne comble pas le trou).
+  /// clients, toutes années confondues), distinct de `sequence` (qui repart
+  /// à 1 à chaque année) et de `numero`. Calculé à la création comme
+  /// max(numeroClient) + 1 pour ce client — jamais renuméroté (une
+  /// suppression ne comble pas le trou).
   numeroClient Int @map("numero_client")
 
   lignes     LigneCommande[]
   historique HistoriqueCommande[]
 
   @@unique([professionnelId, numeroClient])
+  @@unique([professionnelId, annee, sequence])
   @@map("commandes")
-}
-
-/// Compteur global par année civile pour la génération atomique du numéro
-/// de commande (rubrique "Commander") — incrémenté dans une transaction
-/// interactive pour éviter tout doublon en cas de créations simultanées.
-model CompteurCommande {
-  annee         Int @id
-  dernierNumero Int @default(0) @map("dernier_numero")
-
-  @@map("compteurs_commandes")
 }
 
 model LigneCommande {

@@ -76,13 +76,17 @@ export class CommandesService {
   ) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-        const numero = await this.generateNumeroCommande(tx, clientCode);
+        const annee = new Date().getFullYear();
+        const sequence = await this.generateSequence(tx, professionnelId, annee);
+        const numero = this.formatNumero(clientCode, annee, sequence);
         const numeroClient = await this.generateNumeroClient(tx, professionnelId);
         return tx.commande.create({
           data: {
             professionnelId,
             commercialId: dto.commercialId,
             numero,
+            annee,
+            sequence,
             numeroClient,
             lignes: {
               create: dto.lignes.map((ligne) => ({
@@ -117,22 +121,34 @@ export class CommandesService {
     return (_max.numeroClient ?? 0) + 1;
   }
 
-  /// Génération atomique du numéro de commande (format XXX99-9999) — le
-  /// compteur global de l'année est incrémenté dans la même transaction
-  /// interactive que la création de la commande (appelant), ce qui exclut
-  /// tout doublon en cas de créations simultanées (pas de findMany+max).
-  private async generateNumeroCommande(
+  /// Calcule la prochaine séquence PAR CLIENT ET PAR ANNÉE (repart à 1 à
+  /// chaque changement d'année, pour chaque client) — max(sequence) + 1
+  /// pour ce client sur cette année, ou 1 si aucune commande. Jamais
+  /// renumérotée après coup (une suppression ne comble pas le trou).
+  private async generateSequence(
     tx: Prisma.TransactionClient,
-    clientCode: string,
-  ): Promise<string> {
-    const annee = new Date().getFullYear();
-    const compteur = await tx.compteurCommande.upsert({
-      where: { annee },
-      create: { annee, dernierNumero: 1 },
-      update: { dernierNumero: { increment: 1 } },
+    professionnelId: string,
+    annee: number,
+  ): Promise<number> {
+    const { _max } = await tx.commande.aggregate({
+      where: { professionnelId, annee },
+      _max: { sequence: true },
     });
+    const prochaine = (_max.sequence ?? 0) + 1;
+    if (prochaine > 9999) {
+      throw new BadRequestException(
+        `Limite de 9999 commandes atteinte pour ce client sur l'année ${annee}`,
+      );
+    }
+    return prochaine;
+  }
+
+  /// Formate le numéro de commande XXX99-9999 (code client + année civile
+  /// sur 2 chiffres + séquence PAR CLIENT ET PAR ANNÉE zéro-paddée sur 4
+  /// chiffres), ex: AMN26-0001.
+  private formatNumero(clientCode: string, annee: number, sequence: number): string {
     const annee2 = String(annee % 100).padStart(2, '0');
-    return `${clientCode}${annee2}-${String(compteur.dernierNumero).padStart(4, '0')}`;
+    return `${clientCode}${annee2}-${String(sequence).padStart(4, '0')}`;
   }
 
   async updateForProfessionnel(id: string, professionnelId: string, dto: UpdateCommandeDto) {

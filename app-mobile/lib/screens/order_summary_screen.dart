@@ -26,7 +26,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
   bool _sessionExpiredHandled = false;
   String? _error;
   String? _pendingMessage;
-  int? _createdNumero;
+  String? _createdNumero;
 
   String get _token => ProSession.instance.currentPro.value!.token;
 
@@ -85,7 +85,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
 
     try {
       final created = await _api.createCommande(_token, commercialId: commercial.id, lignes: lines);
-      _createdNumero = created.numeroClient;
+      _createdNumero = created.numero;
       return created;
     } on ProSessionExpiredException {
       if (!mounted) return null;
@@ -139,9 +139,9 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
     if (!mounted) return;
     OrderCart.instance.clear();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Commande n° ${created.numeroClient} enregistrée avec succès.')),
+      SnackBar(content: Text('Commande ${created.numero} enregistrée avec succès.')),
     );
-    Navigator.of(context).pop(created.numeroClient);
+    Navigator.of(context).pop(created.numero);
   }
 
   Future<void> _copyPendingMessage() async {
@@ -241,7 +241,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
                     if (_pendingMessage != null) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'Commande n° $_createdNumero enregistrée.',
+                        'Commande $_createdNumero enregistrée.',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
