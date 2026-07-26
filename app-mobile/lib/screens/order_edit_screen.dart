@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/catalog_models.dart' show FeaturedProduct;
 import '../models/pro_models.dart';
@@ -35,6 +37,12 @@ class _OrderEditScreenState extends State<OrderEditScreen> {
   bool _saving = false;
   String? _error;
 
+  Future<List<AgentCommercial>>? _commerciauxFuture;
+  AgentCommercial? _selectedCommercial;
+  bool _sendingWhatsapp = false;
+  bool _sessionExpiredHandled = false;
+  String? _whatsappError;
+
   String get _token => ProSession.instance.currentPro.value!.token;
   bool get _readOnly => widget.commande.estAnnulee;
 
@@ -49,6 +57,65 @@ class _OrderEditScreenState extends State<OrderEditScreen> {
               quantite: l.quantite,
             ))
         .toList();
+    if (!_readOnly) {
+      _commerciauxFuture = _api.fetchCommerciaux(_token).then((list) {
+        final actifs = list.where((c) => c.actif).toList();
+        if (actifs.isNotEmpty && mounted) {
+          setState(() => _selectedCommercial = actifs.first);
+        }
+        return actifs;
+      });
+    }
+  }
+
+  String _buildWhatsappMessage(List<CartLine> lines, String numero) {
+    final pro = ProSession.instance.currentPro.value!;
+    final date = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
+    final buffer = StringBuffer();
+    buffer.writeln('🛒 COMMANDE CLIENT (modifiée)');
+    buffer.writeln('━━━━━━━━━━━━━━');
+    buffer.writeln('N° : $numero');
+    buffer.writeln('Pro : ${pro.nom}');
+    buffer.writeln('Tél : ${pro.telephone1}');
+    buffer.writeln('Date : $date');
+    buffer.writeln('━━━━━━━━━━━━━━');
+    for (var i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      buffer.writeln('${i + 1}. ${line.nomProduit} — Qté : ${line.quantite}');
+    }
+    buffer.writeln('━━━━━━━━━━━━━━');
+    buffer.write('Total : ${lines.length} article(s)');
+    return buffer.toString();
+  }
+
+  Future<void> _sendWhatsapp() async {
+    if (_lines.isEmpty) {
+      setState(() => _whatsappError = 'La commande est vide.');
+      return;
+    }
+    final commercial = _selectedCommercial;
+    if (commercial == null) {
+      setState(() => _whatsappError = 'Choisissez un commercial.');
+      return;
+    }
+    setState(() {
+      _sendingWhatsapp = true;
+      _whatsappError = null;
+    });
+    final message = _buildWhatsappMessage(_lines, widget.commande.numero);
+    final phone = commercial.telephone1.replaceFirst('+', '');
+    final uri = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
+    var launched = false;
+    try {
+      launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      launched = false;
+    }
+    if (!mounted) return;
+    setState(() {
+      _sendingWhatsapp = false;
+      _whatsappError = launched ? null : "Impossible d'ouvrir WhatsApp.";
+    });
   }
 
   @override
@@ -253,17 +320,70 @@ class _OrderEditScreenState extends State<OrderEditScreen> {
             child: Text(_error!, style: const TextStyle(color: Colors.red)),
           ),
         Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: FutureBuilder<List<AgentCommercial>>(
+            future: _commerciauxFuture,
+            builder: (context, snapshot) {
+              if (snapshot.hasError &&
+                  snapshot.error is ProSessionExpiredException &&
+                  !_sessionExpiredHandled) {
+                _sessionExpiredHandled = true;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  performProLogout(
+                    context,
+                    message: 'Session expirée, veuillez vous reconnecter.',
+                  );
+                });
+              }
+              final commerciaux = snapshot.data ?? [];
+              return DropdownButtonFormField<AgentCommercial>(
+                value:
+                    commerciaux.contains(_selectedCommercial) ? _selectedCommercial : null,
+                decoration: const InputDecoration(labelText: 'Commercial (WhatsApp)'),
+                items: [
+                  for (final c in commerciaux)
+                    DropdownMenuItem(value: c, child: Text(c.nomComplet)),
+                ],
+                onChanged: (value) => setState(() => _selectedCommercial = value),
+              );
+            },
+          ),
+        ),
+        if (_whatsappError != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Text(_whatsappError!, style: const TextStyle(color: Colors.red)),
+          ),
+        Padding(
           padding: const EdgeInsets.all(16),
-          child: FilledButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.save),
-            label: const Text('Enregistrer les modifications'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FilledButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.save),
+                label: const Text('Enregistrer les modifications'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _sendingWhatsapp ? null : _sendWhatsapp,
+                icon: _sendingWhatsapp
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send),
+                label: const Text('Envoyer par WhatsApp'),
+              ),
+            ],
           ),
         ),
       ],
