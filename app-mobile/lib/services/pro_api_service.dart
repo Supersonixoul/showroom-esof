@@ -116,7 +116,7 @@ class ProApiService {
         .toList();
   }
 
-  Future<void> createCommande(
+  Future<CommandePro> createCommande(
     String proToken, {
     required String commercialId,
     required List<CartLine> lignes,
@@ -132,5 +132,40 @@ class ProApiService {
       }),
     );
     _checkOk(response);
+    return CommandePro.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// Liste des commandes du client connecté, triées côté backend du plus
+  /// récent au plus ancien.
+  Future<List<CommandePro>> fetchCommandes(String proToken) async {
+    final response = await http.get(
+      Uri.parse('${ApiService.baseUrl}/commandes'),
+      headers: _headers(proToken),
+    );
+    _checkOk(response);
+    return (jsonDecode(response.body) as List<dynamic>)
+        .map((c) => CommandePro.fromJson(c as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Modification d'une commande existante par son client propriétaire —
+  /// remplace intégralement les lignes. Le numéro n'est jamais envoyé/lu :
+  /// il est immuable après création.
+  Future<CommandePro> updateCommande(
+    String proToken,
+    String id, {
+    required List<CartLine> lignes,
+  }) async {
+    final response = await http.patch(
+      Uri.parse('${ApiService.baseUrl}/commandes/$id'),
+      headers: _headers(proToken),
+      body: jsonEncode({
+        'lignes': lignes
+            .map((l) => {'produitId': l.produitId, 'quantite': l.quantite})
+            .toList(),
+      }),
+    );
+    _checkOk(response);
+    return CommandePro.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 }

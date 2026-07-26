@@ -12,7 +12,7 @@ import 'categories_screen.dart';
 import '../services/commercial_session.dart';
 import 'commercial_login_screen.dart';
 import 'login_screen.dart';
-import 'order_catalog_screen.dart';
+import 'orders_list_screen.dart';
 import 'product_detail_screen.dart';
 import 'pro_login_screen.dart';
 import 'professionnels_list_screen.dart';
@@ -321,7 +321,7 @@ void _openPasserCommande(BuildContext context) {
   Navigator.of(context).push(
     MaterialPageRoute(
       builder: (_) => ProSession.instance.currentPro.value != null
-          ? const OrderCatalogScreen()
+          ? const OrdersListScreen()
           : const ProLoginScreen(),
     ),
   );

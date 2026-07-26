@@ -74,3 +74,76 @@ class CartLine {
     this.quantite = 1,
   });
 }
+
+double _parseDecimal(dynamic value) {
+  if (value == null) return 0;
+  if (value is num) return value.toDouble();
+  return double.parse(value.toString());
+}
+
+/// Ligne d'une commande telle que renvoyée par l'API (rubrique "Commander",
+/// compte Pro) — `prixUnitaire` reste nul tant que le commercial ne l'a pas
+/// encore renseigné (rubrique "Traitement").
+class LigneCommandePro {
+  final String? id;
+  final String produitId;
+  final String libelleProduit;
+  final int quantite;
+  final double? prixUnitaire;
+
+  LigneCommandePro({
+    this.id,
+    required this.produitId,
+    required this.libelleProduit,
+    required this.quantite,
+    this.prixUnitaire,
+  });
+
+  double get montant => (prixUnitaire ?? 0) * quantite;
+
+  factory LigneCommandePro.fromJson(Map<String, dynamic> json) => LigneCommandePro(
+        id: json['id'] as String?,
+        produitId: json['produitId'] as String,
+        libelleProduit: json['libelleProduit'] as String,
+        quantite: json['quantite'] as int,
+        prixUnitaire:
+            json['prixUnitaire'] != null ? _parseDecimal(json['prixUnitaire']) : null,
+      );
+}
+
+/// Commande telle que vue par le compte Pro propriétaire (rubrique
+/// "Commander") — `numero` est immuable, attribué par le backend à la
+/// création (format XXX99-9999, voir CommandesService.generateNumeroCommande).
+/// Statuts possibles : ENVOYEE | EN_TRAITEMENT | PROFORMA_EMISE | MODIFIEE | ANNULEE.
+class CommandePro {
+  final String id;
+  final String numero;
+  final DateTime dateCommande;
+  final String statut;
+  final List<LigneCommandePro> lignes;
+
+  CommandePro({
+    required this.id,
+    required this.numero,
+    required this.dateCommande,
+    required this.statut,
+    required this.lignes,
+  });
+
+  factory CommandePro.fromJson(Map<String, dynamic> json) => CommandePro(
+        id: json['id'] as String,
+        numero: json['numero'] as String,
+        dateCommande: DateTime.parse(json['dateCommande'] as String),
+        statut: json['statut'] as String,
+        lignes: (json['lignes'] as List<dynamic>)
+            .map((l) => LigneCommandePro.fromJson(l as Map<String, dynamic>))
+            .toList(),
+      );
+
+  bool get toutesLignesPricees =>
+      lignes.isNotEmpty && lignes.every((l) => l.prixUnitaire != null);
+
+  double get totalHt => lignes.fold(0.0, (sum, l) => sum + l.montant);
+
+  bool get estAnnulee => statut == 'ANNULEE';
+}

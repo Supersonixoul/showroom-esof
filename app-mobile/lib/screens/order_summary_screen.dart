@@ -26,6 +26,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
   bool _sessionExpiredHandled = false;
   String? _error;
   String? _pendingMessage;
+  String? _createdNumero;
 
   String get _token => ProSession.instance.currentPro.value!.token;
 
@@ -43,12 +44,13 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
     });
   }
 
-  String _buildMessage(List<CartLine> lines) {
+  String _buildMessage(List<CartLine> lines, String numero) {
     final pro = ProSession.instance.currentPro.value!;
     final date = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
     final buffer = StringBuffer();
     buffer.writeln('🛒 COMMANDE CLIENT');
     buffer.writeln('━━━━━━━━━━━━━━');
+    buffer.writeln('N° : $numero');
     buffer.writeln('Pro : ${pro.nom}');
     buffer.writeln('Tél : ${pro.telephone1}');
     buffer.writeln('Date : $date');
@@ -79,8 +81,9 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
       _pendingMessage = null;
     });
 
+    CommandePro created;
     try {
-      await _api.createCommande(_token, commercialId: commercial.id, lignes: lines);
+      created = await _api.createCommande(_token, commercialId: commercial.id, lignes: lines);
     } on ProSessionExpiredException {
       if (!mounted) return;
       await performProLogout(context, message: 'Session expirée, veuillez vous reconnecter.');
@@ -92,8 +95,9 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
       });
       return;
     }
+    _createdNumero = created.numero;
 
-    final message = _buildMessage(lines);
+    final message = _buildMessage(lines, created.numero);
     final phone = commercial.telephone1.replaceFirst('+', '');
     final uri = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
     var launched = false;
@@ -106,10 +110,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
     if (!mounted) return;
     if (launched) {
       OrderCart.instance.clear();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Commande envoyée avec succès.')),
-      );
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(context).pop(_createdNumero);
       return;
     }
     setState(() {
@@ -124,10 +125,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
     await Clipboard.setData(ClipboardData(text: message));
     OrderCart.instance.clear();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Commande copiée dans le presse-papiers.')),
-    );
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    Navigator.of(context).pop(_createdNumero);
   }
 
   @override
@@ -217,6 +215,11 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
                     ],
                     if (_pendingMessage != null) ...[
                       const SizedBox(height: 8),
+                      Text(
+                        'Commande $_createdNumero enregistrée.',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
                       const Text(
                         "WhatsApp n'a pas pu être ouvert. Vous pouvez copier la commande :",
                         style: TextStyle(fontSize: 12, color: Colors.grey),

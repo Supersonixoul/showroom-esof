@@ -330,10 +330,26 @@ model Commande {
   numeroProforma String?   @unique @map("numero_proforma") @db.VarChar(20)
   dateProforma   DateTime? @map("date_proforma")
 
+  /// Numéro unique et immuable de la commande, format XXX99-9999 (code
+  /// client 3 caractères + année civile 2 chiffres + séquence globale
+  /// annuelle 4 chiffres, ex: RGF26-0015) — généré côté backend uniquement
+  /// à la création, voir CommandesService.generateNumeroCommande.
+  numero String @unique @db.VarChar(10)
+
   lignes     LigneCommande[]
   historique HistoriqueCommande[]
 
   @@map("commandes")
+}
+
+/// Compteur global par année civile pour la génération atomique du numéro
+/// de commande (rubrique "Commander") — incrémenté dans une transaction
+/// interactive pour éviter tout doublon en cas de créations simultanées.
+model CompteurCommande {
+  annee         Int @id
+  dernierNumero Int @default(0) @map("dernier_numero")
+
+  @@map("compteurs_commandes")
 }
 
 model LigneCommande {

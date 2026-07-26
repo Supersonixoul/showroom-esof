@@ -16,6 +16,7 @@ import type { Response } from 'express';
 import { existsSync } from 'fs';
 import { CommandesService } from './commandes.service';
 import { CreateCommandeDto } from './dto/create-commande.dto';
+import { UpdateCommandeDto } from './dto/update-commande.dto';
 import { TraitementCommandeDto } from './dto/traitement-commande.dto';
 import { AnnulationCommandeDto } from './dto/annulation-commande.dto';
 import { ProAuthGuard } from '../auth/pro-auth.guard';
@@ -55,6 +56,16 @@ export class CommandesController {
       request.commercial!.agentCommercialId,
       statut,
     );
+  }
+
+  @UseGuards(ProAuthGuard)
+  @Patch(':id')
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() request: RequestWithAuth,
+    @Body() dto: UpdateCommandeDto,
+  ) {
+    return this.commandesService.updateForProfessionnel(id, request.pro!.professionnelId, dto);
   }
 
   @UseGuards(CommercialAuthGuard)

@@ -6,9 +6,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCommandeDto } from './dto/create-commande.dto';
+import { UpdateCommandeDto } from './dto/update-commande.dto';
 import { TraitementCommandeDto } from './dto/traitement-commande.dto';
 import { AnnulationCommandeDto } from './dto/annulation-commande.dto';
 import { ProformaService } from './proforma.service';
+import type { Prisma } from '../../generated/prisma/client';
 
 const COMMANDE_INCLUDE = {
   professionnel: {
@@ -32,6 +34,14 @@ export class CommandesService {
   ) {}
 
   async create(professionnelId: string, dto: CreateCommandeDto) {
+    const professionnel = await this.prisma.professionnel.findUnique({
+      where: { id: professionnelId },
+      select: { code: true },
+    });
+    if (!professionnel) {
+      throw new NotFoundException(`Client ${professionnelId} introuvable`);
+    }
+
     const commercial = await this.prisma.agentCommercial.findUnique({
       where: { id: dto.commercialId },
     });
@@ -49,22 +59,88 @@ export class CommandesService {
       }
     }
 
-    const commande = await this.prisma.commande.create({
-      data: {
-        professionnelId,
-        commercialId: dto.commercialId,
-        lignes: {
-          create: dto.lignes.map((ligne) => ({
-            produitId: ligne.produitId,
-            quantite: ligne.quantite,
-            libelleProduit: produitsById.get(ligne.produitId)!.name,
-          })),
+    const commande = await this.prisma.$transaction(async (tx) => {
+      const numero = await this.generateNumeroCommande(tx, professionnel.code);
+      return tx.commande.create({
+        data: {
+          professionnelId,
+          commercialId: dto.commercialId,
+          numero,
+          lignes: {
+            create: dto.lignes.map((ligne) => ({
+              produitId: ligne.produitId,
+              quantite: ligne.quantite,
+              libelleProduit: produitsById.get(ligne.produitId)!.name,
+            })),
+          },
         },
-      },
-      include: COMMANDE_INCLUDE,
+        include: COMMANDE_INCLUDE,
+      });
     });
 
     return commande;
+  }
+
+  /// Génération atomique du numéro de commande (format XXX99-9999) — le
+  /// compteur global de l'année est incrémenté dans la même transaction
+  /// interactive que la création de la commande (appelant), ce qui exclut
+  /// tout doublon en cas de créations simultanées (pas de findMany+max).
+  private async generateNumeroCommande(
+    tx: Prisma.TransactionClient,
+    clientCode: string,
+  ): Promise<string> {
+    const annee = new Date().getFullYear();
+    const compteur = await tx.compteurCommande.upsert({
+      where: { annee },
+      create: { annee, dernierNumero: 1 },
+      update: { dernierNumero: { increment: 1 } },
+    });
+    const annee2 = String(annee % 100).padStart(2, '0');
+    return `${clientCode}${annee2}-${String(compteur.dernierNumero).padStart(4, '0')}`;
+  }
+
+  async updateForProfessionnel(id: string, professionnelId: string, dto: UpdateCommandeDto) {
+    const commande = await this.prisma.commande.findUnique({ where: { id } });
+    if (!commande) {
+      throw new NotFoundException(`Commande ${id} introuvable`);
+    }
+    if (commande.professionnelId !== professionnelId) {
+      throw new ForbiddenException("Cette commande n'appartient pas à ce client");
+    }
+    if (commande.statut === 'ANNULEE') {
+      throw new BadRequestException('Cette commande est annulée et ne peut plus être modifiée');
+    }
+
+    if (!dto.lignes) {
+      return this.prisma.commande.findUniqueOrThrow({ where: { id }, include: COMMANDE_INCLUDE });
+    }
+
+    const produits = await this.prisma.product.findMany({
+      where: { id: { in: dto.lignes.map((ligne) => ligne.produitId) } },
+    });
+    const produitsById = new Map(produits.map((produit) => [produit.id, produit]));
+    for (const ligne of dto.lignes) {
+      if (!produitsById.has(ligne.produitId)) {
+        throw new BadRequestException(`Produit ${ligne.produitId} introuvable`);
+      }
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.ligneCommande.deleteMany({ where: { commandeId: id } });
+      await tx.commande.update({
+        where: { id },
+        data: {
+          lignes: {
+            create: dto.lignes!.map((ligne) => ({
+              produitId: ligne.produitId,
+              quantite: ligne.quantite,
+              libelleProduit: produitsById.get(ligne.produitId)!.name,
+            })),
+          },
+        },
+      });
+      return tx.commande.findUniqueOrThrow({ where: { id }, include: COMMANDE_INCLUDE });
+    });
   }
 
   findAllForAdmin() {
