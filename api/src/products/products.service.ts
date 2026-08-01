@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -20,6 +21,9 @@ export class ProductsService {
   async create(dto: CreateProductDto) {
     await this.validateSubcategory(dto.categoryId, dto.subcategoryId);
     await this.validateGamme(dto.brandId, dto.gammeId);
+    if (dto.reference) {
+      await this.ensureReferenceAvailable(dto.reference);
+    }
 
     const { _max } = await this.prisma.product.aggregate({
       _max: { displayOrder: true },
@@ -101,6 +105,10 @@ export class ProductsService {
       await this.validateGamme(brandId, product.gammeId);
     }
 
+    if (dto.reference) {
+      await this.ensureReferenceAvailable(dto.reference, id);
+    }
+
     return this.prisma.product.update({ where: { id }, data: dto });
   }
 
@@ -151,6 +159,20 @@ export class ProductsService {
     if (gamme.brandId !== brandId) {
       throw new BadRequestException(
         "La gamme sélectionnée n'appartient pas à la marque du produit",
+      );
+    }
+  }
+
+  /** La référence est facultative mais, si renseignée, doit être unique
+   * (contrainte `@unique` en base) — vérifiée en amont pour renvoyer un
+   * message clair plutôt qu'une erreur Prisma brute (500). */
+  private async ensureReferenceAvailable(reference: string, excludeId?: string) {
+    const existing = await this.prisma.product.findUnique({
+      where: { reference },
+    });
+    if (existing && existing.id !== excludeId) {
+      throw new ConflictException(
+        `La référence "${reference}" est déjà utilisée par un autre produit`,
       );
     }
   }
