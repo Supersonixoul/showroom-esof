@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/catalog_models.dart';
 import '../services/api_service.dart';
 import '../services/catalog_repository.dart';
+import 'home_screen.dart' show kHorizontalPadding;
 import 'product_list_screen.dart';
 
 const double _kCategoryThumbSize = 48;
@@ -62,8 +65,9 @@ class _CategoryThumbnail extends StatelessWidget {
 
 /// Navigation récursive dans l'arborescence des catégories (accueil →
 /// Catégories). Une catégorie sans sous-catégorie (feuille) affiche
-/// directement la liste des produits qui lui sont rattachés.
-class CategoriesScreen extends StatelessWidget {
+/// directement la liste des produits qui lui sont rattachés, avec une
+/// recherche multi-mots au sein de la catégorie.
+class CategoriesScreen extends StatefulWidget {
   final String? parentId;
   final String title;
 
@@ -74,20 +78,103 @@ class CategoriesScreen extends StatelessWidget {
   });
 
   @override
+  State<CategoriesScreen> createState() => _CategoriesScreenState();
+}
+
+class _CategoriesScreenState extends State<CategoriesScreen> {
+  final ApiService _api = ApiService();
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounce;
+  String _query = '';
+  bool _searchLoading = false;
+  List<String>? _matchingIds;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    final query = value.trim();
+    setState(() => _query = query);
+    if (query.isEmpty) {
+      setState(() {
+        _matchingIds = null;
+        _searchLoading = false;
+      });
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 400), () => _runSearch(query));
+  }
+
+  Future<void> _runSearch(String query) async {
+    final categoryId = widget.parentId;
+    if (categoryId == null) return;
+    setState(() => _searchLoading = true);
+    try {
+      final ids = await _api.searchCategoryProductIds(categoryId, query);
+      if (!mounted || query != _query) return;
+      setState(() {
+        _matchingIds = ids;
+        _searchLoading = false;
+      });
+    } catch (_) {
+      if (!mounted || query != _query) return;
+      setState(() {
+        _matchingIds = [];
+        _searchLoading = false;
+      });
+    }
+  }
+
+  void _clearSearch() {
+    _debounce?.cancel();
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _matchingIds = null;
+      _searchLoading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(title: Text(widget.title)),
       body: ValueListenableBuilder<CatalogSnapshot>(
         valueListenable: CatalogRepository.instance.snapshot,
         builder: (context, catalog, _) {
           final children = catalog.categories
-              .where((c) => c.parentId == parentId)
+              .where((c) => c.parentId == widget.parentId)
               .toList();
           if (children.isEmpty) {
-            final products = catalog.products
-                .where((p) => p.categoryId == parentId && p.isActive)
+            var products = catalog.products
+                .where((p) => p.categoryId == widget.parentId && p.isActive)
                 .toList();
-            return ProductGrid(products: products);
+            final matchingIds = _matchingIds;
+            if (matchingIds != null) {
+              final idSet = matchingIds.toSet();
+              products = products.where((p) => idSet.contains(p.id)).toList();
+            }
+            return Column(
+              children: [
+                _CategorySearchField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  onClear: _clearSearch,
+                ),
+                Expanded(
+                  child: _searchLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : (matchingIds != null && products.isEmpty)
+                          ? const _EmptyCategorySearchState()
+                          : ProductGrid(products: products),
+                ),
+              ],
+            );
           }
           return ListView.builder(
             itemCount: children.length,
@@ -109,6 +196,91 @@ class CategoriesScreen extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+/// Champ de recherche en pilule, même style que la barre de recherche de
+/// l'accueil (fond gris clair, bords totalement arrondis, aucune bordure).
+class _CategorySearchField extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  const _CategorySearchField({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        kHorizontalPadding,
+        12,
+        kHorizontalPadding,
+        8,
+      ),
+      child: SizedBox(
+        height: 42,
+        child: AnimatedBuilder(
+          animation: controller,
+          builder: (context, _) {
+            return TextField(
+              controller: controller,
+              onChanged: onChanged,
+              textAlignVertical: TextAlignVertical.center,
+              style: const TextStyle(fontSize: 14),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Rechercher dans cette catégorie...',
+                hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
+                suffixIcon: controller.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear, size: 18, color: Colors.grey),
+                        onPressed: onClear,
+                      ),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// État vide quand aucun produit ne correspond à la recherche en cours.
+class _EmptyCategorySearchState extends StatelessWidget {
+  const _EmptyCategorySearchState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off, size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text(
+              'Aucun article ne correspond à votre recherche',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ],
+        ),
       ),
     );
   }

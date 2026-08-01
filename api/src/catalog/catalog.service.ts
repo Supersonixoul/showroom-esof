@@ -205,6 +205,27 @@ export class CatalogService {
     }
 
     const baseWhere = { categoryId: query.categoryId, isActive: true };
+
+    // Recherche multi-mots (écran « produits d'une catégorie » de l'app
+    // mobile) : chaque mot doit être trouvé (insensible à la casse) dans au
+    // moins un des champs désignation/référence/marque — ET entre les mots,
+    // OU entre les champs pour un même mot.
+    const searchWords = (query.q ?? '')
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word.length > 0);
+    const searchFilter = searchWords.length
+      ? {
+          AND: searchWords.map((word) => ({
+            OR: [
+              { name: { contains: word, mode: 'insensitive' as const } },
+              { reference: { contains: word, mode: 'insensitive' as const } },
+              { brand: { name: { contains: word, mode: 'insensitive' as const } } },
+            ],
+          })),
+        }
+      : {};
+
     // subcategoryId/gammeId absents (puce "Toutes") -> pas de filtre, inclut
     // aussi les produits sans sous-catégorie / sans gamme.
     const filterWhere = {
@@ -212,6 +233,7 @@ export class CatalogService {
       brandId: query.brandId,
       subcategoryId: query.subcategoryId,
       gammeId: query.gammeId,
+      ...searchFilter,
     };
 
     const [brandRows, gammeRows, totalItems, products] = await Promise.all([

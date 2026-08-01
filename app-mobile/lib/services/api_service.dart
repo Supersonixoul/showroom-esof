@@ -69,4 +69,30 @@ class ApiService {
         .map((p) => FeaturedProduct.fromJson(p as Map<String, dynamic>))
         .toList();
   }
+
+  /// Recherche multi-mots au sein d'une catégorie (écran liste produits d'une
+  /// catégorie) : chaque mot doit être trouvé dans la désignation, la
+  /// référence OU la marque (`GET /catalog/products`, paramètre `q`). Ne
+  /// renvoie que les identifiants — l'affichage réutilise le produit complet
+  /// déjà présent dans le catalogue synchronisé localement.
+  Future<List<String>> searchCategoryProductIds(
+    String categoryId,
+    String query,
+  ) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/catalog/products').replace(queryParameters: {
+        'categoryId': categoryId,
+        'q': query,
+        'pageSize': '50',
+      }),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Erreur API recherche catégorie: ${response.statusCode}');
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final items = data['items'] as List<dynamic>? ?? [];
+    return items
+        .map((item) => (item as Map<String, dynamic>)['id'] as String)
+        .toList();
+  }
 }
