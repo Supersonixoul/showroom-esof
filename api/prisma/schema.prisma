@@ -94,7 +94,7 @@ model Subcategory {
 model Product {
   id           String   @id @default(uuid()) @db.Uuid
   name         String
-  reference    String?  @unique @db.VarChar(30)
+  reference    String?  @db.VarChar(30)
   description  String?
   price        Decimal? @db.Decimal(12, 2)
   isActive     Boolean  @default(true) @map("is_active")
@@ -136,6 +136,13 @@ model Product {
   quoteItems     QuoteItem[]
   ligneCommandes LigneCommande[]
 
+  /// Deux produits distincts peuvent légitimement partager la même
+  /// référence (ex. fils électriques : seule la couleur change dans le
+  /// libellé) — l'unicité porte donc sur le couple (référence, désignation),
+  /// pas sur la référence seule. Comparaison stricte sur les valeurs brutes ;
+  /// la normalisation (espaces/casse) est appliquée côté application avant
+  /// toute création (voir ProductsService).
+  @@unique([reference, name])
   @@map("products")
 }
 

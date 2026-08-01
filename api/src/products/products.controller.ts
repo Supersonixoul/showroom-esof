@@ -21,6 +21,7 @@ import { CreateProductImageDto } from './dto/create-product-image.dto';
 import { MoveProductDto } from './dto/move-product.dto';
 import { SetVisibilityDto } from './dto/set-visibility.dto';
 import { UpdateProductStatusDto } from './dto/update-product-status.dto';
+import { ImportProductsDto } from './dto/import-products.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -35,6 +36,11 @@ export class ProductsController {
   @Post()
   create(@Body() dto: CreateProductDto) {
     return this.productsService.create(dto);
+  }
+
+  @Post('import')
+  importProducts(@Body() dto: ImportProductsDto) {
+    return this.productsService.importProducts(dto);
   }
 
   @Get()

@@ -96,6 +96,34 @@ export interface Product {
   updatedAt: string;
 }
 
+export interface ImportProductRow {
+  name: string;
+  reference?: string;
+  description?: string;
+  price?: number;
+}
+
+export interface ImportProductsPayload {
+  rows: ImportProductRow[];
+  brandId?: string | null;
+  categoryId: string;
+  subcategoryId?: string | null;
+  gammeId?: string | null;
+}
+
+export interface ImportReportRow {
+  ligne: number;
+  reference: string | null;
+  designation: string;
+}
+
+export interface ImportReport {
+  lignesLues: number;
+  produitsCrees: number;
+  doublons: ImportReportRow[];
+  erreurs: (ImportReportRow & { message: string })[];
+}
+
 export interface PromoVideo {
   id: string;
   title: string;

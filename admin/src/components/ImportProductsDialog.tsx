@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import { brandsApi, categoriesApi, gammesApi, productsApi, subcategoriesApi } from '../api/client';
-import type { Product } from '../api/types';
+import type { ImportReport } from '../api/types';
 
 interface ParsedRow {
   reference?: string;
@@ -11,10 +11,53 @@ interface ParsedRow {
   price?: number;
 }
 
-interface ImportResult {
-  row: ParsedRow;
-  status: 'ok' | 'error';
-  message?: string;
+/** Échappe un champ pour le format CSV (séparateur `;`, convention Excel FR) :
+ * entoure de guillemets si la valeur contient le séparateur, un guillemet ou
+ * un retour à la ligne, et double les guillemets internes. */
+function escapeCsvField(value: string): string {
+  if (/[;"\n]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+/** Exporte le rapport d'import en CSV (UTF-8 avec BOM pour un affichage correct
+ * des accents dans Excel), toutes les mentions étant en français. */
+function exportReportToCsv(report: ImportReport, fileName: string) {
+  const lines: string[] = [];
+  lines.push('Rapport d\'import de produits');
+  lines.push(`Fichier;${escapeCsvField(fileName)}`);
+  lines.push(`Lignes lues;${report.lignesLues}`);
+  lines.push(`Produits créés;${report.produitsCrees}`);
+  lines.push(`Doublons rejetés;${report.doublons.length}`);
+  lines.push(`Erreurs;${report.erreurs.length}`);
+  lines.push('');
+
+  lines.push('Doublons rejetés (référence + désignation déjà existantes)');
+  lines.push('Ligne;Référence;Désignation');
+  for (const d of report.doublons) {
+    lines.push(
+      `${d.ligne};${escapeCsvField(d.reference ?? '')};${escapeCsvField(d.designation)}`,
+    );
+  }
+  lines.push('');
+
+  lines.push('Erreurs');
+  lines.push('Ligne;Référence;Désignation;Message');
+  for (const e of report.erreurs) {
+    lines.push(
+      `${e.ligne};${escapeCsvField(e.reference ?? '')};${escapeCsvField(e.designation)};${escapeCsvField(e.message)}`,
+    );
+  }
+
+  const csvContent = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'rapport-import-produits.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function normalizeHeader(header: string): string {
@@ -112,7 +155,8 @@ export function ImportProductsDialog({ onClose }: { onClose: () => void }) {
   const [sheetNames, setSheetNames] = useState<string[]>([]);
   const [selectedSheet, setSelectedSheet] = useState('');
   const [importing, setImporting] = useState(false);
-  const [results, setResults] = useState<ImportResult[] | null>(null);
+  const [report, setReport] = useState<ImportReport | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const { data: gammes } = useQuery({
     queryKey: ['gammes', brandId],
@@ -125,15 +169,12 @@ export function ImportProductsDialog({ onClose }: { onClose: () => void }) {
     enabled: !!categoryId,
   });
 
-  const createMutation = useMutation({
-    mutationFn: (data: Partial<Product>) => productsApi.create(data),
-  });
-
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setFileName(file.name);
-    setResults(null);
+    setReport(null);
+    setImportError(null);
     try {
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: 'array' });
@@ -156,7 +197,8 @@ export function ImportProductsDialog({ onClose }: { onClose: () => void }) {
   function handleSheetChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const sheetName = e.target.value;
     setSelectedSheet(sheetName);
-    setResults(null);
+    setReport(null);
+    setImportError(null);
     if (!workbook) return;
     const { rows: parsed, error } = parseSheet(workbook, sheetName);
     setRows(parsed);
@@ -166,32 +208,25 @@ export function ImportProductsDialog({ onClose }: { onClose: () => void }) {
   async function handleImport() {
     if (!categoryId || rows.length === 0) return;
     setImporting(true);
-    const outcome: ImportResult[] = [];
-    for (const row of rows) {
-      try {
-        await createMutation.mutateAsync({
-          name: row.name,
-          reference: row.reference,
-          description: row.description,
-          price: row.price,
-          brandId: brandId || null,
-          categoryId,
-          subcategoryId: subcategoryId || null,
-          gammeId: gammeId || null,
-        });
-        outcome.push({ row, status: 'ok' });
-      } catch (err) {
-        outcome.push({ row, status: 'error', message: (err as Error).message });
-      }
+    setImportError(null);
+    try {
+      const result = await productsApi.import({
+        rows,
+        brandId: brandId || null,
+        categoryId,
+        subcategoryId: subcategoryId || null,
+        gammeId: gammeId || null,
+      });
+      setReport(result);
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    } catch (err) {
+      setImportError((err as Error).message);
+    } finally {
+      setImporting(false);
     }
-    setResults(outcome);
-    setImporting(false);
-    queryClient.invalidateQueries({ queryKey: ['products'] });
   }
 
   const canImport = !!categoryId && rows.length > 0 && !importing;
-  const successCount = results?.filter((r) => r.status === 'ok').length ?? 0;
-  const errorResults = results?.filter((r) => r.status === 'error') ?? [];
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -297,23 +332,43 @@ export function ImportProductsDialog({ onClose }: { onClose: () => void }) {
 
         {parseError && <div className="error-banner">{parseError}</div>}
 
-        {!parseError && fileName && rows.length > 0 && !results && (
+        {!parseError && fileName && rows.length > 0 && !report && (
           <div className="success-banner">
             {rows.length} produit(s) détecté(s) dans « {fileName} ».
           </div>
         )}
 
-        {results && (
-          <div className={errorResults.length > 0 ? 'error-banner' : 'success-banner'}>
-            {successCount} produit(s) importé(s) avec succès.
-            {errorResults.length > 0 && (
-              <ul>
-                {errorResults.map((r, i) => (
-                  <li key={i}>
-                    {r.row.name} : {r.message}
-                  </li>
-                ))}
-              </ul>
+        {importError && <div className="error-banner">{importError}</div>}
+
+        {report && (
+          <div className={report.erreurs.length > 0 ? 'error-banner' : 'success-banner'}>
+            <p>
+              Lignes lues : {report.lignesLues} — Produits créés : {report.produitsCrees} —
+              Doublons rejetés : {report.doublons.length} — Erreurs : {report.erreurs.length}
+            </p>
+            {report.doublons.length > 0 && (
+              <>
+                <strong>Doublons rejetés (référence + désignation déjà existantes) :</strong>
+                <ul>
+                  {report.doublons.map((d, i) => (
+                    <li key={i}>
+                      Ligne {d.ligne} : {d.reference ?? '(sans référence)'} — {d.designation}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {report.erreurs.length > 0 && (
+              <>
+                <strong>Erreurs :</strong>
+                <ul>
+                  {report.erreurs.map((e, i) => (
+                    <li key={i}>
+                      Ligne {e.ligne} : {e.designation} — {e.message}
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </div>
         )}
@@ -327,8 +382,13 @@ export function ImportProductsDialog({ onClose }: { onClose: () => void }) {
           >
             {importing ? 'Import en cours…' : `Importer ${rows.length || ''} produit(s)`}
           </button>
+          {report && (
+            <button type="button" onClick={() => exportReportToCsv(report, fileName)}>
+              Exporter le rapport en CSV
+            </button>
+          )}
           <button type="button" onClick={onClose}>
-            {results ? 'Fermer' : 'Annuler'}
+            {report ? 'Fermer' : 'Annuler'}
           </button>
         </div>
       </div>

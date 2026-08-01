@@ -4,6 +4,8 @@ import type {
   Brand,
   Category,
   Gamme,
+  ImportProductsPayload,
+  ImportReport,
   LoginResult,
   Product,
   ProductImage,
@@ -211,6 +213,11 @@ export const productsApi = {
   ) =>
     request<Product>(`/products/${id}/status`, {
       method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  import: (data: ImportProductsPayload) =>
+    request<ImportReport>('/products/import', {
+      method: 'POST',
       body: JSON.stringify(data),
     }),
 };

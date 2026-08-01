@@ -12,7 +12,11 @@ import { CreateProductSpecDto } from './dto/create-product-spec.dto';
 import { CreateProductImageDto } from './dto/create-product-image.dto';
 import { MoveProductDto } from './dto/move-product.dto';
 import { UpdateProductStatusDto } from './dto/update-product-status.dto';
+import { ImportProductsDto } from './dto/import-products.dto';
+import { ImportProductRowDto } from './dto/import-product-row.dto';
+import { ImportReport, ImportReportRow } from './dto/import-report';
 import { buildImageVariants } from './image-variants.util';
+import { normalizeForComparison } from './normalize.util';
 
 @Injectable()
 export class ProductsService {
@@ -22,7 +26,7 @@ export class ProductsService {
     await this.validateSubcategory(dto.categoryId, dto.subcategoryId);
     await this.validateGamme(dto.brandId, dto.gammeId);
     if (dto.reference) {
-      await this.ensureReferenceAvailable(dto.reference);
+      await this.ensureReferenceNameAvailable(dto.reference, dto.name);
     }
 
     const { _max } = await this.prisma.product.aggregate({
@@ -105,8 +109,15 @@ export class ProductsService {
       await this.validateGamme(brandId, product.gammeId);
     }
 
-    if (dto.reference) {
-      await this.ensureReferenceAvailable(dto.reference, id);
+    // La référence seule n'est pas une clé d'unicité valable (deux produits
+    // distincts — ex. fils électriques de couleurs différentes — peuvent
+    // légitimement partager la même référence) : on ne vérifie donc que si
+    // la référence et/ou la désignation changent, sur le couple résultant.
+    const resolvedReference =
+      dto.reference !== undefined ? dto.reference : product.reference;
+    const resolvedName = dto.name !== undefined ? dto.name : product.name;
+    if (resolvedReference && (dto.reference !== undefined || dto.name !== undefined)) {
+      await this.ensureReferenceNameAvailable(resolvedReference, resolvedName, id);
     }
 
     return this.prisma.product.update({ where: { id }, data: dto });
@@ -163,18 +174,136 @@ export class ProductsService {
     }
   }
 
-  /** La référence est facultative mais, si renseignée, doit être unique
-   * (contrainte `@unique` en base) — vérifiée en amont pour renvoyer un
-   * message clair plutôt qu'une erreur Prisma brute (500). */
-  private async ensureReferenceAvailable(reference: string, excludeId?: string) {
-    const existing = await this.prisma.product.findUnique({
+  /** La référence est facultative et n'est PAS une clé d'unicité à elle
+   * seule : deux produits distincts (ex. fils électriques de couleurs
+   * différentes) peuvent légitimement partager la même référence. L'unicité
+   * porte donc sur le couple (référence, désignation) — normalisé (espaces
+   * réduits, casse uniformisée, voir `normalizeForComparison`) — et reflète
+   * la contrainte `@@unique([reference, name])` en base. Vérifiée en amont
+   * pour renvoyer un message clair plutôt qu'une erreur Prisma brute (500). */
+  private async ensureReferenceNameAvailable(
+    reference: string,
+    name: string,
+    excludeId?: string,
+  ) {
+    const candidates = await this.prisma.product.findMany({
       where: { reference },
     });
-    if (existing && existing.id !== excludeId) {
+    const normalizedName = normalizeForComparison(name);
+    const conflict = candidates.find(
+      (p) => p.id !== excludeId && normalizeForComparison(p.name) === normalizedName,
+    );
+    if (conflict) {
       throw new ConflictException(
-        `La référence "${reference}" est déjà utilisée par un autre produit`,
+        `Un produit avec la référence "${reference}" et la désignation "${name}" existe déjà`,
       );
     }
+  }
+
+  /** Clé de dédoublonnage normalisée sur le couple (référence, désignation)
+   * — voir `normalizeForComparison` pour les règles de normalisation
+   * (espaces début/fin et internes, casse). */
+  private buildDedupKey(reference: string | null | undefined, name: string): string {
+    const normalizedReference = reference ? normalizeForComparison(reference) : '';
+    return `${normalizedReference}\u0000${normalizeForComparison(name)}`;
+  }
+
+  /**
+   * Import en masse de produits (depuis le fichier Excel parsé côté admin) :
+   * - couple (référence, désignation) inexistant → création ;
+   * - référence déjà présente mais désignation différente → création
+   *   (produit distinct) ;
+   * - couple strictement identique (après normalisation) à un produit déjà
+   *   en base, ou à une ligne précédente du même fichier → rejet (doublon).
+   * L'ensemble des créations est enveloppé dans une transaction Prisma ;
+   * chaque ligne est isolée par un savepoint pour qu'une erreur ponctuelle
+   * (ex. contrainte violée) n'annule pas les créations déjà effectuées.
+   * Aucun produit existant n'est jamais modifié ni supprimé par cet import.
+   */
+  async importProducts(dto: ImportProductsDto): Promise<ImportReport> {
+    await this.validateSubcategory(dto.categoryId, dto.subcategoryId);
+    await this.validateGamme(dto.brandId, dto.gammeId);
+
+    const existingProducts = await this.prisma.product.findMany({
+      select: { reference: true, name: true },
+    });
+    const seen = new Set<string>(
+      existingProducts.map((p) => this.buildDedupKey(p.reference, p.name)),
+    );
+
+    const doublons: ImportReportRow[] = [];
+    const erreurs: (ImportReportRow & { message: string })[] = [];
+    const aCreer: { ligne: number; row: ImportProductRowDto }[] = [];
+
+    dto.rows.forEach((row, index) => {
+      const ligne = index + 1;
+      const name = (row.name ?? '').toString().trim();
+      const reference = row.reference?.toString().trim() || undefined;
+
+      if (!name) {
+        erreurs.push({
+          ligne,
+          reference: reference ?? null,
+          designation: name,
+          message: 'Désignation manquante',
+        });
+        return;
+      }
+
+      const key = this.buildDedupKey(reference, name);
+      if (seen.has(key)) {
+        doublons.push({ ligne, reference: reference ?? null, designation: name });
+        return;
+      }
+      seen.add(key);
+      aCreer.push({ ligne, row: { ...row, name, reference } });
+    });
+
+    let produitsCrees = 0;
+    await this.prisma.$transaction(async (tx) => {
+      const { _max } = await tx.product.aggregate({
+        _max: { displayOrder: true },
+        where: { categoryId: dto.categoryId },
+      });
+      let displayOrder = (_max.displayOrder ?? -1) + 1;
+
+      for (const { ligne, row } of aCreer) {
+        await tx.$executeRawUnsafe('SAVEPOINT import_row');
+        try {
+          await tx.product.create({
+            data: {
+              name: row.name,
+              reference: row.reference,
+              description: row.description,
+              price: row.price,
+              brandId: dto.brandId ?? null,
+              categoryId: dto.categoryId,
+              subcategoryId: dto.subcategoryId ?? null,
+              gammeId: dto.gammeId ?? null,
+              displayOrder: displayOrder++,
+            },
+          });
+          await tx.$executeRawUnsafe('RELEASE SAVEPOINT import_row');
+          produitsCrees++;
+        } catch (err) {
+          await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT import_row');
+          erreurs.push({
+            ligne,
+            reference: row.reference ?? null,
+            designation: row.name,
+            message:
+              err instanceof Error ? err.message : 'Erreur inconnue lors de la création',
+          });
+        }
+      }
+    });
+
+    return {
+      lignesLues: dto.rows.length,
+      produitsCrees,
+      doublons,
+      erreurs,
+    };
   }
 
   async remove(id: string) {
