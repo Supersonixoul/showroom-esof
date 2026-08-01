@@ -9,7 +9,7 @@ const links = [
   { to: '/subcategories', label: 'Sous-Catégories' },
   { to: '/products', label: 'Produits' },
   { to: '/videos', label: 'Vidéos' },
-  { to: '/commerciaux', label: 'Commerciaux ESOF' },
+  { to: '/commerciaux', label: 'Commerciaux' },
   { to: '/professionnels', label: 'Clients' },
 ];
 

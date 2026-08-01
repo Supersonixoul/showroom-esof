@@ -121,7 +121,7 @@ export function CommerciauxPage() {
     <div className="page-fill">
       <div>
         <div className="page-header">
-          <h2>Commerciaux ESOF</h2>
+          <h2>Commerciaux</h2>
         </div>
 
         {error && (
