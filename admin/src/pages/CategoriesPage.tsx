@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { categoriesApi, mediaUrl, uploadMedia } from '../api/client';
 import type { Category } from '../api/types';
 
 export function CategoriesPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: categories, isLoading, error } = useQuery({
     queryKey: ['categories'],
     queryFn: categoriesApi.list,
@@ -339,6 +341,12 @@ export function CategoriesPage() {
                       }}
                     >
                       Supprimer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/categories/${category.id}/produits`)}
+                    >
+                      Détails
                     </button>
                   </div>
                 </td>

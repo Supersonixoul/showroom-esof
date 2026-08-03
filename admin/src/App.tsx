@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage';
 import { BrandsPage } from './pages/BrandsPage';
 import { GammesPage } from './pages/GammesPage';
 import { CategoriesPage } from './pages/CategoriesPage';
+import { CategoryProductsPage } from './pages/CategoryProductsPage';
 import { SubcategoriesPage } from './pages/SubcategoriesPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { VideosPage } from './pages/VideosPage';
@@ -36,6 +37,7 @@ function App() {
         <Route path="/brands" element={<BrandsPage />} />
         <Route path="/gammes" element={<GammesPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
+        <Route path="/categories/:id/produits" element={<CategoryProductsPage />} />
         <Route path="/subcategories" element={<SubcategoriesPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/videos" element={<VideosPage />} />

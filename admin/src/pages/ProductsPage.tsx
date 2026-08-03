@@ -1,16 +1,9 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  brandsApi,
-  categoriesApi,
-  gammesApi,
-  mediaUrl,
-  productsApi,
-  subcategoriesApi,
-  uploadMedia,
-} from '../api/client';
+import { brandsApi, categoriesApi, mediaUrl, productsApi, uploadMedia } from '../api/client';
 import type { Product } from '../api/types';
 import { ImportProductsDialog } from '../components/ImportProductsDialog';
+import { ProductForm } from '../components/ProductForm';
 import { ProductStatusDialog } from '../components/ProductStatusDialog';
 import { formatPrix } from '../utils/formatPrix';
 
@@ -18,7 +11,7 @@ export function ProductsPage() {
   const queryClient = useQueryClient();
   const { data: products, isLoading, error } = useQuery({
     queryKey: ['products'],
-    queryFn: productsApi.list,
+    queryFn: () => productsApi.list(),
   });
   const { data: brands } = useQuery({ queryKey: ['brands'], queryFn: brandsApi.list });
   const { data: categories } = useQuery({
@@ -26,55 +19,13 @@ export function ProductsPage() {
     queryFn: categoriesApi.list,
   });
 
-  const [name, setName] = useState('');
-  const [reference, setReference] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [quantiteStock, setQuantiteStock] = useState('0');
-  const [afficherQuantite, setAfficherQuantite] = useState(false);
-  const [brandId, setBrandId] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [subcategoryId, setSubcategoryId] = useState('');
-  const [gammeId, setGammeId] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-
-  const { data: subcategories } = useQuery({
-    queryKey: ['subcategories', categoryId],
-    queryFn: () => subcategoriesApi.list(categoryId),
-    enabled: !!categoryId,
-  });
-  const { data: gammes } = useQuery({
-    queryKey: ['gammes', brandId],
-    queryFn: () => gammesApi.list(brandId),
-    enabled: !!brandId,
-  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [statusProductId, setStatusProductId] = useState<string | null>(null);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['products'] });
-
-  const createMutation = useMutation({
-    mutationFn: productsApi.create,
-    onSuccess: () => {
-      invalidate();
-      resetForm();
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) =>
-      productsApi.update(id, data),
-    onSuccess: () => {
-      invalidate();
-      resetForm();
-    },
-  });
 
   const removeMutation = useMutation({
     mutationFn: productsApi.remove,
@@ -96,88 +47,7 @@ export function ProductsPage() {
     onSuccess: invalidate,
   });
 
-  function resetForm() {
-    setName('');
-    setReference('');
-    setDescription('');
-    setPrice('');
-    setQuantiteStock('0');
-    setAfficherQuantite(false);
-    setBrandId('');
-    setCategoryId('');
-    setSubcategoryId('');
-    setGammeId('');
-    setEditingId(null);
-    setImageFile(null);
-    setImagePreview(null);
-    if (imageInputRef.current) imageInputRef.current.value = '';
-  }
-
-  function startEdit(product: Product) {
-    setEditingId(product.id);
-    setName(product.name);
-    setReference(product.reference ?? '');
-    setDescription(product.description ?? '');
-    setPrice(product.price != null ? String(product.price) : '');
-    setQuantiteStock(String(product.quantiteStock ?? 0));
-    setAfficherQuantite(product.afficherQuantite ?? false);
-    setBrandId(product.brandId ?? '');
-    setCategoryId(product.categoryId);
-    setSubcategoryId(product.subcategoryId ?? '');
-    setGammeId(product.gammeId ?? '');
-    setImageFile(null);
-    setImagePreview(
-      product.images && product.images.length > 0
-        ? mediaUrl(product.images[0].url)
-        : null,
-    );
-    if (imageInputRef.current) imageInputRef.current.value = '';
-  }
-
-  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
-    setImageFile(file);
-    setImagePreview(file ? URL.createObjectURL(file) : null);
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const data = {
-      name,
-      reference: reference || undefined,
-      description: description || undefined,
-      price: price !== '' ? Number(price) : undefined,
-      quantiteStock: quantiteStock !== '' ? Number(quantiteStock) : undefined,
-      afficherQuantite,
-      brandId: brandId || null,
-      categoryId,
-      subcategoryId: subcategoryId || null,
-      gammeId: gammeId || null,
-    };
-    const product = editingId
-      ? await updateMutation.mutateAsync({ id: editingId, data })
-      : await createMutation.mutateAsync(data);
-
-    if (imageFile) {
-      setUploadingImage(true);
-      try {
-        const result = await uploadMedia(imageFile, 'products');
-        await productsApi.addImage(product.id, {
-          url: result.url,
-          position: product.images?.length ?? 0,
-        });
-        invalidate();
-      } catch (err) {
-        alert((err as Error).message);
-      } finally {
-        setUploadingImage(false);
-      }
-    }
-  }
-
-  const saving = createMutation.isPending || updateMutation.isPending;
-  const mutationError =
-    createMutation.error || updateMutation.error || setVisibilityMutation.error;
+  const mutationError = setVisibilityMutation.error;
 
   function brandName(id?: string | null) {
     if (!id) return '—';
@@ -225,174 +95,12 @@ export function ProductsPage() {
           <div className="error-banner">{(mutationError as Error).message}</div>
         )}
 
-        <form className="form-panel" onSubmit={handleSubmit}>
-        <div className="form-row">
-          <label style={{ flex: '0 1 calc((100% - 36px) / 4)' }}>
-            Référence
-            <input
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-              maxLength={30}
-            />
-          </label>
-          <label>
-            Nom
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </label>
-        </div>
-        <div className="form-row">
-          <label>
-            Marque (optionnel)
-            <select
-              value={brandId}
-              onChange={(e) => {
-                setBrandId(e.target.value);
-                setGammeId('');
-              }}
-            >
-              <option value="">Aucune</option>
-              {brands?.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Gamme (optionnel)
-            <select
-              value={gammeId}
-              onChange={(e) => setGammeId(e.target.value)}
-              disabled={!brandId}
-            >
-              <option value="">Aucune</option>
-              {gammes?.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Catégorie
-            <select
-              value={categoryId}
-              onChange={(e) => {
-                setCategoryId(e.target.value);
-                setSubcategoryId('');
-              }}
-              required
-            >
-              <option value="" disabled>
-                Choisir…
-              </option>
-              {categories?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Sous-catégorie (optionnel)
-            <select
-              value={subcategoryId}
-              onChange={(e) => setSubcategoryId(e.target.value)}
-              disabled={!categoryId}
-            >
-              <option value="">Aucune</option>
-              {subcategories?.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <div className="form-row">
-          <label>
-            Description
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-            />
-          </label>
-          <label>
-            Prix (F)
-            <input
-              type="number"
-              step="1"
-              min="0"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-            />
-          </label>
-        </div>
-        <div className="form-row">
-          <label>
-            Quantité en stock
-            <input
-              type="number"
-              step="1"
-              min="0"
-              value={quantiteStock}
-              onChange={(e) => setQuantiteStock(e.target.value)}
-            />
-          </label>
-          <div className="checkbox-row">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={afficherQuantite}
-                onChange={(e) => setAfficherQuantite(e.target.checked)}
-              />
-              Afficher la quantité exacte aux apps publiques
-            </label>
-          </div>
-        </div>
-        <div className="form-row">
-          <label>
-            Image
-            <div className="actions" style={{ alignItems: 'center' }}>
-              {imagePreview && (
-                <div className="product-photo-frame" style={{ width: 60, height: 60 }}>
-                  <img src={imagePreview} alt="" loading="lazy" />
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => imageInputRef.current?.click()}
-              >
-                Choisir une image
-              </button>
-              {imageFile && <span className="muted">{imageFile.name}</span>}
-              <input
-                ref={imageInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                style={{ display: 'none' }}
-              />
-            </div>
-          </label>
-        </div>
-        <div className="actions">
-          <button type="submit" className="primary" disabled={saving || uploadingImage}>
-            {editingId ? 'Enregistrer' : 'Ajouter'}
-          </button>
-          {editingId && (
-            <button type="button" onClick={resetForm}>
-              Annuler
-            </button>
-          )}
-          {uploadingImage && <span className="muted">Envoi de l'image…</span>}
-        </div>
-        </form>
+        <ProductForm
+          key={editingId ?? 'create'}
+          product={editingId ? products?.find((p) => p.id === editingId) ?? null : null}
+          onSuccess={() => setEditingId(null)}
+          onCancel={() => setEditingId(null)}
+        />
       </div>
 
       <div className="scroll-area">
@@ -504,7 +212,7 @@ export function ProductsPage() {
                     >
                       {selectedId === product.id ? 'Fermer' : 'Détails'}
                     </button>
-                    <button onClick={() => startEdit(product)}>
+                    <button onClick={() => setEditingId(product.id)}>
                       Modifier
                     </button>
                     <button onClick={() => setStatusProductId(product.id)}>

@@ -154,7 +154,10 @@ export const gammesApi = {
 // ---- Products -----------------------------------------------------------
 
 export const productsApi = {
-  list: () => request<Product[]>('/products'),
+  list: (categoryId?: string) =>
+    request<Product[]>(
+      categoryId ? `/products?categoryId=${categoryId}` : '/products',
+    ),
   get: (id: string) => request<Product>(`/products/${id}`),
   create: (data: Partial<Product>) =>
     request<Product>('/products', {
