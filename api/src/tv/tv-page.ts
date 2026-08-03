@@ -297,8 +297,8 @@ export const TV_PAGE_HTML = `<!doctype html>
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    padding: 20px;
-    gap: 10px;
+    padding: 8px;
+    gap: 6px;
     text-align: center;
     overflow: hidden;
     transition: transform 0.15s ease, border-color 0.15s ease;
@@ -331,7 +331,7 @@ export const TV_PAGE_HTML = `<!doctype html>
     background: #ffffff;
     border-radius: 12px;
     overflow: hidden;
-    padding: 6px;
+    padding: 4px;
     box-sizing: border-box;
   }
   .cat-icon {
@@ -354,8 +354,8 @@ export const TV_PAGE_HTML = `<!doctype html>
   /* Bande de libellé à hauteur fixe, en bas de carte : nom + compteur sur
      une seule ligne (format "Nom (N)"), jamais "produits". */
   .cat-label {
-    flex: 0 0 40px;
-    height: 40px;
+    flex: 0 0 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
