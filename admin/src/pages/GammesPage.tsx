@@ -349,7 +349,7 @@ export function GammesPage() {
                   )}
                 </td>
                 <td>
-                  <div className="actions">
+                  <div className="actions actions-inline">
                     <button onClick={() => startEdit(gamme)}>Modifier</button>
                     <button
                       className="danger"

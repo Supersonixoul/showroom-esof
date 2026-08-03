@@ -202,12 +202,7 @@ tr:last-child td {
 .content {
   flex: 1;
   padding: 32px;
-  max-width: 1100px;
   overflow-y: auto;
-}
-
-.content--full {
-  max-width: none;
 }
 
 .page-header {
@@ -294,7 +289,6 @@ tr:last-child td {
 
   .content {
     padding: 16px;
-    max-width: 100%;
   }
 
   .form-row {
@@ -307,12 +301,17 @@ tr:last-child td {
   }
 }
 
+/* La page prend toute la largeur (voir .content), mais un formulaire étiré
+   sur toute cette largeur serait peu lisible : il garde une largeur de
+   lecture confortable, centrée dans la page. Règle unique pour tous les
+   formulaires de l'admin. */
 .form-panel {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 16px;
-  margin-bottom: 20px;
+  max-width: 1000px;
+  margin: 0 auto 20px;
 }
 
 .form-row {
@@ -438,6 +437,63 @@ button.icon-btn {
 .category-products-table th:nth-child(9),
 .category-products-table td:nth-child(9) {
   width: 220px;
+}
+
+/* Répartition des colonnes du tableau « Produits » : le Nom reçoit
+   l'essentiel de la largeur disponible, les autres colonnes restent
+   compactes. Scopé à cette table (sélecteur générique `table` inchangé). */
+.products-table {
+  table-layout: fixed;
+}
+
+.products-table th:nth-child(1),
+.products-table td:nth-child(1) {
+  width: 60px;
+}
+
+.products-table th:nth-child(2),
+.products-table td:nth-child(2) {
+  width: 56px;
+}
+
+.products-table th:nth-child(3),
+.products-table td:nth-child(3) {
+  width: 70px;
+}
+
+.products-table th:nth-child(4),
+.products-table td:nth-child(4) {
+  width: 74px;
+}
+
+.products-table th:nth-child(6),
+.products-table td:nth-child(6) {
+  width: 74px;
+}
+
+.products-table th:nth-child(7),
+.products-table td:nth-child(7) {
+  width: 82px;
+}
+
+.products-table th:nth-child(8),
+.products-table td:nth-child(8) {
+  width: 60px;
+}
+
+.products-table th:nth-child(9),
+.products-table td:nth-child(9) {
+  width: 82px;
+}
+
+.products-table th:nth-child(10),
+.products-table td:nth-child(10) {
+  width: 78px;
+}
+
+.products-table th:nth-child(11),
+.products-table td:nth-child(11) {
+  width: 230px;
 }
 
 .cell-clamp {

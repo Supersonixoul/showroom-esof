@@ -167,7 +167,7 @@ export function BrandsPage() {
                 </td>
                 <td>{brand.name}</td>
                 <td>
-                  <div className="actions">
+                  <div className="actions actions-inline">
                     <button onClick={() => startEdit(brand)}>Modifier</button>
                     <button
                       className="danger"

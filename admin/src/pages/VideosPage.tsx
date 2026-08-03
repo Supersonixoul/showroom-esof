@@ -250,7 +250,7 @@ export function VideosPage() {
                 </td>
                 <td className="muted">{video.position}</td>
                 <td>
-                  <div className="actions">
+                  <div className="actions actions-inline">
                     <button onClick={() => startEdit(video)}>Modifier</button>
                     <button
                       onClick={() =>

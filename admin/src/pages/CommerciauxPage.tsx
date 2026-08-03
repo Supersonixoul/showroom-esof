@@ -245,7 +245,7 @@ export function CommerciauxPage() {
                     )}
                   </td>
                   <td>
-                    <div className="actions">
+                    <div className="actions actions-inline">
                       <button onClick={() => startEdit(agent)}>Modifier</button>
                       <button
                         className="danger"

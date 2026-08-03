@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useMatch } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { SyncIndicator } from './SyncIndicator';
 
@@ -15,9 +15,6 @@ const links = [
 
 export function Layout() {
   const { user, logout } = useAuth();
-  // Le tableau de cette page a beaucoup de colonnes : il a besoin de toute
-  // la largeur disponible, sans le max-width par défaut de la zone de contenu.
-  const isCategoryProductsPage = useMatch('/categories/:id/produits');
 
   return (
     <div className="app-shell">
@@ -54,7 +51,7 @@ export function Layout() {
           )}
         </div>
       </aside>
-      <main className={isCategoryProductsPage ? 'content content--full' : 'content'}>
+      <main className="content">
         <Outlet />
       </main>
     </div>

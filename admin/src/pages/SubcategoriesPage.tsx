@@ -369,7 +369,7 @@ export function SubcategoriesPage() {
                   )}
                 </td>
                 <td>
-                  <div className="actions">
+                  <div className="actions actions-inline">
                     <button onClick={() => startEdit(subcategory)}>
                       Modifier
                     </button>

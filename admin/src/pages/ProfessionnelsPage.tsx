@@ -259,7 +259,7 @@ export function ProfessionnelsPage() {
                   <td className="muted">{pro.telephone2 || '—'}</td>
                   <td>{pro.actif ? 'Oui' : 'Non'}</td>
                   <td>
-                    <div className="actions">
+                    <div className="actions actions-inline">
                       <button onClick={() => startEdit(pro)}>Modifier</button>
                       <button
                         className="danger"

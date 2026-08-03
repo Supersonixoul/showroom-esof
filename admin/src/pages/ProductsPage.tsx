@@ -107,7 +107,7 @@ export function ProductsPage() {
       {isLoading ? (
         <p className="muted">Chargement…</p>
       ) : (
-        <table>
+        <table className="products-table">
           <thead>
             <tr>
               <th>Ordre</th>
@@ -182,7 +182,11 @@ export function ProductsPage() {
                   </div>
                 </td>
                 <td className="muted">{product.reference || '—'}</td>
-                <td>{product.name}</td>
+                <td>
+                  <span className="cell-clamp" title={product.name}>
+                    {product.name}
+                  </span>
+                </td>
                 <td className="muted">{brandName(product.brandId)}</td>
                 <td className="muted">{categoryName(product.categoryId)}</td>
                 <td>{formatPrix(product.price)}</td>
