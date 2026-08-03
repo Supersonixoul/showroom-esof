@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { categoriesApi, mediaUrl, productsApi } from '../api/client';
 import type { Product } from '../api/types';
@@ -44,6 +44,58 @@ export function CategoryProductsPage() {
     queryClient.invalidateQueries({ queryKey: ['products'] });
     setSuccessMessage('Produit enregistré avec succès.');
     setTimeout(() => setSuccessMessage(null), 3000);
+  }
+
+  const moveMutation = useMutation({
+    mutationFn: ({ id: productId, direction }: { id: string; direction: 'up' | 'down' }) =>
+      productsApi.move(productId, direction),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (productId: string) => productsApi.remove(productId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      setSuccessMessage('Article supprimé.');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    },
+  });
+
+  const setVisibilityMutation = useMutation({
+    mutationFn: ({ id: productId, isActive }: { id: string; isActive: boolean }) =>
+      productsApi.setVisibility(productId, isActive),
+    onMutate: async ({ id: productId, isActive }) => {
+      const queryKey = ['products', 'byCategory', id];
+      const previous = queryClient.getQueryData<Product[]>(queryKey);
+      queryClient.setQueryData<Product[]>(queryKey, (old) =>
+        old?.map((p) => (p.id === productId ? { ...p, isActive } : p)),
+      );
+      return { previous, queryKey };
+    },
+    onError: (_err, _vars, context) => {
+      if (context) {
+        queryClient.setQueryData(context.queryKey, context.previous);
+      }
+    },
+    onSuccess: () => {
+      setSuccessMessage('Visibilité mise à jour.');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+
+  const mutationError = moveMutation.error || setVisibilityMutation.error || removeMutation.error;
+  const isSearchActive = search.trim() !== '';
+
+  function productIndex(productId: string) {
+    return (products ?? []).findIndex((p) => p.id === productId);
   }
 
   const normalizedSearch = search.trim().toLowerCase();
@@ -99,6 +151,10 @@ export function CategoryProductsPage() {
           <div className="success-banner">{successMessage}</div>
         )}
 
+        {mutationError && (
+          <div className="error-banner">{(mutationError as Error).message}</div>
+        )}
+
         {productsError && (
           <div className="error-banner">
             Impossible de charger les articles de cette catégorie.{' '}
@@ -128,58 +184,124 @@ export function CategoryProductsPage() {
           <table>
             <thead>
               <tr>
+                <th>Ordre</th>
                 <th>Photo</th>
                 <th>Référence</th>
                 <th>Désignation</th>
                 <th>Marque</th>
                 <th>Sous-catégorie</th>
                 <th>Prix</th>
-                <th>Visibilité</th>
+                <th>Visible</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((product) => (
-                <tr key={product.id} className={product.isActive ? undefined : 'row-hidden'}>
-                  <td>
-                    <div className="product-photo-frame" style={{ width: 48, height: 48 }}>
-                      {product.images && product.images.length > 0 ? (
-                        <img
-                          src={mediaUrl(
-                            product.images[0].imageVariants?.thumb ?? product.images[0].url,
-                          )}
-                          alt=""
-                          loading="lazy"
+              {filteredProducts.map((product) => {
+                const globalIndex = productIndex(product.id);
+                const isFirst = globalIndex === 0;
+                const isLast = globalIndex === (products?.length ?? 0) - 1;
+                return (
+                  <tr key={product.id} className={product.isActive ? undefined : 'row-hidden'}>
+                    <td>
+                      <div className="reorder-buttons">
+                        <button
+                          type="button"
+                          className="icon-btn"
+                          disabled={isSearchActive || isFirst}
+                          aria-label="Monter"
+                          title="Monter"
+                          onClick={() =>
+                            moveMutation.mutate({ id: product.id, direction: 'up' })
+                          }
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-btn"
+                          disabled={isSearchActive || isLast}
+                          aria-label="Descendre"
+                          title="Descendre"
+                          onClick={() =>
+                            moveMutation.mutate({ id: product.id, direction: 'down' })
+                          }
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="product-photo-frame" style={{ width: 48, height: 48 }}>
+                        {product.images && product.images.length > 0 ? (
+                          <img
+                            src={mediaUrl(
+                              product.images[0].imageVariants?.thumb ?? product.images[0].url,
+                            )}
+                            alt=""
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="muted">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="muted">{product.reference || '—'}</td>
+                    <td>{product.name}</td>
+                    <td className="muted">{product.brand?.name ?? '—'}</td>
+                    <td className="muted">{product.subcategory?.name ?? '—'}</td>
+                    <td>{formatPrix(product.price)}</td>
+                    <td>
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={product.isActive}
+                          disabled={
+                            setVisibilityMutation.isPending &&
+                            setVisibilityMutation.variables?.id === product.id
+                          }
+                          aria-label={
+                            product.isActive ? 'Masquer le produit' : 'Rendre visible le produit'
+                          }
+                          onChange={(e) =>
+                            setVisibilityMutation.mutate({
+                              id: product.id,
+                              isActive: e.target.checked,
+                            })
+                          }
                         />
-                      ) : (
-                        <span className="muted">—</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="muted">{product.reference || '—'}</td>
-                  <td>{product.name}</td>
-                  <td className="muted">{product.brand?.name ?? '—'}</td>
-                  <td className="muted">{product.subcategory?.name ?? '—'}</td>
-                  <td>{formatPrix(product.price)}</td>
-                  <td>
-                    {product.isActive ? (
-                      <span className="badge badge-success">Visible</span>
-                    ) : (
-                      <span className="tag-hidden">Masqué</span>
-                    )}
-                  </td>
-                  <td>
-                    <div className="actions">
-                      <button onClick={() => setEditingProduct(product)}>
-                        Modifier
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        Visible
+                      </label>
+                    </td>
+                    <td>
+                      <div className="actions">
+                        <button onClick={() => setEditingProduct(product)}>
+                          Modifier
+                        </button>
+                        <button
+                          className="danger"
+                          disabled={removeMutation.isPending && removeMutation.variables === product.id}
+                          onClick={() => {
+                            if (
+                              confirm(
+                                `Supprimer l'article "${product.name}" ? Cette action est irréversible.`,
+                              )
+                            ) {
+                              removeMutation.mutate(product.id);
+                            }
+                          }}
+                        >
+                          {removeMutation.isPending && removeMutation.variables === product.id
+                            ? 'Suppression…'
+                            : 'Supprimer'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {filteredProducts.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="muted">
+                  <td colSpan={9} className="muted">
                     {products && products.length > 0
                       ? 'Aucun article ne correspond à la recherche.'
                       : 'Aucun article dans cette catégorie.'}
