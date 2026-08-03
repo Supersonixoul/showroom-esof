@@ -206,6 +206,10 @@ tr:last-child td {
   overflow-y: auto;
 }
 
+.content--full {
+  max-width: none;
+}
+
 .page-header {
   display: flex;
   align-items: center;
@@ -386,6 +390,61 @@ button.icon-btn {
   padding: 4px 8px;
   line-height: 1;
   font-weight: 600;
+}
+
+/* Répartition des colonnes du tableau « Articles de la catégorie » : la
+   Désignation reçoit l'essentiel de la largeur gagnée par le plein écran,
+   les autres colonnes restent compactes. Scopé à cette table pour ne pas
+   affecter les autres tableaux de l'admin (sélecteur générique `table`). */
+.category-products-table {
+  table-layout: fixed;
+}
+
+.category-products-table th:nth-child(1),
+.category-products-table td:nth-child(1) {
+  width: 96px;
+}
+
+.category-products-table th:nth-child(2),
+.category-products-table td:nth-child(2) {
+  width: 76px;
+}
+
+.category-products-table th:nth-child(3),
+.category-products-table td:nth-child(3) {
+  width: 110px;
+}
+
+.category-products-table th:nth-child(5),
+.category-products-table td:nth-child(5) {
+  width: 120px;
+}
+
+.category-products-table th:nth-child(6),
+.category-products-table td:nth-child(6) {
+  width: 140px;
+}
+
+.category-products-table th:nth-child(7),
+.category-products-table td:nth-child(7) {
+  width: 90px;
+}
+
+.category-products-table th:nth-child(8),
+.category-products-table td:nth-child(8) {
+  width: 110px;
+}
+
+.category-products-table th:nth-child(9),
+.category-products-table td:nth-child(9) {
+  width: 220px;
+}
+
+.cell-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .muted {

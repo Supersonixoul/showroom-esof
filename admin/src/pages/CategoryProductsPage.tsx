@@ -181,7 +181,7 @@ export function CategoryProductsPage() {
         {productsLoading ? (
           <p className="muted">Chargement…</p>
         ) : (
-          <table>
+          <table className="category-products-table">
             <thead>
               <tr>
                 <th>Ordre</th>
@@ -246,7 +246,11 @@ export function CategoryProductsPage() {
                       </div>
                     </td>
                     <td className="muted">{product.reference || '—'}</td>
-                    <td>{product.name}</td>
+                    <td>
+                      <span className="cell-clamp" title={product.name}>
+                        {product.name}
+                      </span>
+                    </td>
                     <td className="muted">{product.brand?.name ?? '—'}</td>
                     <td className="muted">{product.subcategory?.name ?? '—'}</td>
                     <td>{formatPrix(product.price)}</td>
