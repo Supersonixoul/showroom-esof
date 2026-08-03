@@ -664,17 +664,26 @@ export const TV_CLIENT_JS = `(function () {
           icon.textContent = cat.name.charAt(0).toUpperCase();
         }
 
-        var name = document.createElement('div');
+        var photoWrap = document.createElement('div');
+        photoWrap.className = 'cat-photo-wrap';
+        photoWrap.appendChild(icon);
+
+        var label = document.createElement('div');
+        label.className = 'cat-label';
+
+        var name = document.createElement('span');
         name.className = 'cat-name';
         name.textContent = cat.name;
 
-        var count = document.createElement('div');
+        var count = document.createElement('span');
         count.className = 'cat-count';
-        count.textContent = cat.productCount + (cat.productCount === 1 ? ' produit' : ' produits');
+        count.textContent = '(' + cat.productCount + ')';
 
-        card.appendChild(icon);
-        card.appendChild(name);
-        card.appendChild(count);
+        label.appendChild(name);
+        label.appendChild(count);
+
+        card.appendChild(photoWrap);
+        card.appendChild(label);
         card.addEventListener('click', function () {
           categoryFocusIndex = i;
           renderCategories();

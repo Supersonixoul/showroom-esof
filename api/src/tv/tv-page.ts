@@ -296,9 +296,9 @@ export const TV_PAGE_HTML = `<!doctype html>
     border-radius: 18px;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    align-items: stretch;
     padding: 20px;
+    gap: 10px;
     text-align: center;
     overflow: hidden;
     transition: transform 0.15s ease, border-color 0.15s ease;
@@ -318,6 +318,22 @@ export const TV_PAGE_HTML = `<!doctype html>
     box-shadow: 0 0 0 6px rgba(255, 204, 0, 0.35), 0 14px 26px rgba(0, 0, 0, 0.55);
     z-index: 2;
   }
+  /* Zone image extensible (~75% de la hauteur de la carte) : fond blanc,
+     object-fit: contain (jamais de rognage/déformation, convention du
+     projet — voir .prod-photo-wrap). */
+  .cat-photo-wrap {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    padding: 6px;
+    box-sizing: border-box;
+  }
   .cat-icon {
     width: 84px;
     height: 84px;
@@ -327,31 +343,42 @@ export const TV_PAGE_HTML = `<!doctype html>
     justify-content: center;
     font-size: 34px;
     font-weight: bold;
-    margin-bottom: 16px;
     color: #111;
+    flex-shrink: 0;
   }
   .cat-photo {
-    width: 84px;
-    height: 84px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-bottom: 16px;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  /* Bande de libellé à hauteur fixe, en bas de carte : nom + compteur sur
+     une seule ligne (format "Nom (N)"), jamais "produits". */
+  .cat-label {
+    flex: 0 0 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    overflow: hidden;
   }
   .cat-name {
     font-size: 26px;
     font-weight: bold;
     line-height: 1.2;
-    max-height: 63px;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
     color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
   .cat-count {
-    font-size: 22px;
+    font-size: 26px;
+    font-weight: 600;
     color: #6b6375;
-    margin-top: 6px;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   .product-card {
