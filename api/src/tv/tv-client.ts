@@ -46,6 +46,7 @@ export const TV_CLIENT_JS = `(function () {
   var catCategoriesScreen = document.getElementById('cat-categories-screen');
   var catCategoriesGrid = document.getElementById('cat-categories-grid');
   var catProductsScreen = document.getElementById('cat-products-screen');
+  var catBackBtn = document.getElementById('cat-back-btn');
   var catSubChips = document.getElementById('cat-sub-chips');
   var catBrandChips = document.getElementById('cat-brand-chips');
   var catGammeChips = document.getElementById('cat-gamme-chips');
@@ -81,6 +82,7 @@ export const TV_CLIENT_JS = `(function () {
     var lines = [
       'mode: ' + mode,
       'catalogScreen: ' + catalogScreen,
+      'zone: ' + (productsState ? productsState.zone : '-'),
       'playlistOpen: ' + playlistOpen,
       'controlsVisible: ' + controlsVisible,
       'currentIndex: ' + currentIndex + ' / ' + playlist.length,
@@ -109,7 +111,14 @@ export const TV_CLIENT_JS = `(function () {
       var reason = ev && ev.reason ? (ev.reason.message || ev.reason) : 'inconnue';
       debugReportError('promesse rejetée : ' + reason);
     });
-    renderDebugPanel();
+    // Le premier rendu réel est fait plus bas (juste avant fetchPlaylist),
+    // une fois toutes les variables d'état (playlist, mode, catalogScreen…)
+    // effectivement initialisées : les lire ici les référencerait avant
+    // leur "var" d'initialisation (encore "undefined" via le hoisting),
+    // ce qui ferait planter ce bloc (ex. playlist.length sur "undefined")
+    // et empêcherait, en mode debug (?debug=1), tout le reste du script de
+    // s'exécuter (aucun listener clavier attaché) — d'où ce premier appel
+    // différé.
   }
 
   var buttons = [btnPrev, btnPlayPause, btnNext, btnPlaylist, btnCatalog];
@@ -700,7 +709,25 @@ export const TV_CLIENT_JS = `(function () {
       pendingFocus: null,
     };
     showCatalogScreen('products');
+    renderBackButton();
     fetchProducts();
+  }
+
+  // Le bouton « ← Retour » vit tout en haut de la chaîne de navigation
+  // Haut/Bas des filtres (au-dessus de subChips/chips/gammeChips), et
+  // représente aussi le point d'arrivée de la touche BACK une fois revenu
+  // à la grille produits (voir handleProductsKey).
+  function renderBackButton() {
+    catBackBtn.className =
+      productsState && productsState.zone === 'back' ? 'cat-back-btn focused' : 'cat-back-btn';
+  }
+
+  // Retour à l'écran catégories : la grille catégories n'a jamais été
+  // détruite (juste masquée par showCatalogScreen), et categoryFocusIndex
+  // n'a pas changé depuis l'ouverture de la catégorie — le focus et le
+  // défilement sont donc déjà cohérents, sans re-rendu ni rechargement.
+  function goBackToCategories() {
+    showCatalogScreen('categories');
   }
 
   // ---- Écran produits ----
@@ -740,6 +767,7 @@ export const TV_CLIENT_JS = `(function () {
           renderSubChips();
           renderBrandChips();
           renderGammeChips();
+          renderBackButton();
           renderProducts();
           renderPagination();
         })
@@ -976,6 +1004,10 @@ export const TV_CLIENT_JS = `(function () {
         productsState.zone = 'subChips';
         renderSubChips();
         renderBrandChips();
+      } else {
+        productsState.zone = 'back';
+        renderBrandChips();
+        renderBackButton();
       }
     } else if (action === 'down') {
       productsState.zone = productsState.gammes.length > 0 ? 'gammeChips' : 'grid';
@@ -1032,6 +1064,10 @@ export const TV_CLIENT_JS = `(function () {
         productsState.subChipsFocusIndex++;
         renderSubChips();
       }
+    } else if (action === 'up') {
+      productsState.zone = 'back';
+      renderSubChips();
+      renderBackButton();
     } else if (action === 'down') {
       productsState.zone = productsState.brands.length > 0 ? 'chips' : 'grid';
       renderSubChips();
@@ -1059,6 +1095,9 @@ export const TV_CLIENT_JS = `(function () {
         } else if (productsState.subcategories && productsState.subcategories.length > 0) {
           productsState.zone = 'subChips';
           renderSubChips();
+        } else {
+          productsState.zone = 'back';
+          renderBackButton();
         }
       }
       return;
@@ -1079,6 +1118,10 @@ export const TV_CLIENT_JS = `(function () {
       } else if (productsState.subcategories && productsState.subcategories.length > 0) {
         productsState.zone = 'subChips';
         renderSubChips();
+        renderProducts();
+      } else {
+        productsState.zone = 'back';
+        renderBackButton();
         renderProducts();
       }
       return;
@@ -1102,12 +1145,50 @@ export const TV_CLIENT_JS = `(function () {
     }
   }
 
+  // Point d'entrée de la zone « back » (bouton visible « ← Retour »),
+  // au sommet de la chaîne de navigation Haut/Bas des filtres.
+  function handleBackZoneKey(action) {
+    if (action === 'enter') {
+      goBackToCategories();
+    } else if (action === 'down') {
+      if (productsState.subcategories && productsState.subcategories.length > 0) {
+        productsState.zone = 'subChips';
+      } else if (productsState.brands.length > 0) {
+        productsState.zone = 'chips';
+      } else if (productsState.gammes.length > 0) {
+        productsState.zone = 'gammeChips';
+      } else {
+        productsState.zone = 'grid';
+      }
+      renderBackButton();
+      renderSubChips();
+      renderBrandChips();
+      renderGammeChips();
+      renderProducts();
+    }
+  }
+
   function handleProductsKey(action) {
     if (action === 'back') {
-      showCatalogScreen('categories');
+      // Remonte d'un seul niveau à la fois : depuis un filtre (marque,
+      // sous-catégorie, gamme), on revient d'abord à la grille produits ;
+      // depuis la grille (ou le bouton Retour), on quitte vers les
+      // catégories. Cohérent avec le bouton « ← Retour » visible à l'écran.
+      if (productsState.zone === 'grid' || productsState.zone === 'back') {
+        goBackToCategories();
+      } else {
+        productsState.zone = 'grid';
+        renderSubChips();
+        renderBrandChips();
+        renderGammeChips();
+        renderBackButton();
+        renderProducts();
+      }
       return;
     }
-    if (productsState.zone === 'chips') {
+    if (productsState.zone === 'back') {
+      handleBackZoneKey(action);
+    } else if (productsState.zone === 'chips') {
       handleChipsKey(action);
     } else if (productsState.zone === 'gammeChips') {
       handleGammeChipsKey(action);
@@ -1234,6 +1315,10 @@ export const TV_CLIENT_JS = `(function () {
     exitCatalogMode();
   });
 
+  catBackBtn.addEventListener('click', function () {
+    goBackToCategories();
+  });
+
   catalogRoot.addEventListener('click', function () {
     if (mode === 'catalog') {
       resetCatalogInactivityTimer();
@@ -1248,6 +1333,7 @@ export const TV_CLIENT_JS = `(function () {
   var KEY_DOWN = 40;
   var KEY_ENTER = 13;
   var KEY_ESC = 27;
+  var KEY_BACKSPACE = 8;
   var KEY_BACK_WEBOS = 461;
 
   function getKeyAction(e) {
@@ -1268,7 +1354,15 @@ export const TV_CLIENT_JS = `(function () {
     if (code === KEY_ENTER || key === 'Enter') {
       return 'enter';
     }
-    if (code === KEY_BACK_WEBOS || code === KEY_ESC || key === 'Escape' || key === 'GoBack' || key === 'Back') {
+    if (
+      code === KEY_BACK_WEBOS ||
+      code === KEY_ESC ||
+      code === KEY_BACKSPACE ||
+      key === 'Escape' ||
+      key === 'GoBack' ||
+      key === 'Back' ||
+      key === 'Backspace'
+    ) {
       return 'back';
     }
     return null;
@@ -1370,6 +1464,7 @@ export const TV_CLIENT_JS = `(function () {
     hint.className = 'hidden';
   }, HINT_MS);
 
+  renderDebugPanel();
   fetchPlaylist();
 })();
 `;

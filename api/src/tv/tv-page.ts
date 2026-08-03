@@ -426,6 +426,25 @@ export const TV_PAGE_HTML = `<!doctype html>
     color: #c62828;
   }
 
+  .cat-back-btn {
+    align-self: flex-start;
+    flex: 0 0 auto;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    font-family: Arial, sans-serif;
+    font-size: 24px;
+    padding: 10px 22px;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }
+  .cat-back-btn.focused {
+    border-color: #ffcc00;
+    background: rgba(255, 204, 0, 0.25);
+    box-shadow: 0 0 0 4px rgba(255, 204, 0, 0.4);
+  }
+
   #cat-sub-chips,
   #cat-brand-chips,
   #cat-gamme-chips {
@@ -600,6 +619,7 @@ export const TV_PAGE_HTML = `<!doctype html>
     </div>
 
     <div id="cat-products-screen" class="cat-screen">
+      <button id="cat-back-btn" class="cat-back-btn">&#8592; Retour</button>
       <div id="cat-sub-chips" class="empty"></div>
       <div id="cat-brand-chips"></div>
       <div id="cat-gamme-chips" class="empty"></div>
