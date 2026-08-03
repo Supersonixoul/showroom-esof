@@ -509,6 +509,13 @@ export const TV_PAGE_HTML = `<!doctype html>
   #cat-detail-screen.active {
     flex-direction: row;
     gap: 48px;
+    position: relative;
+  }
+  .cat-detail-back-btn {
+    position: absolute;
+    top: 32px;
+    left: 44px;
+    z-index: 1;
   }
   #cat-detail-photo-wrap {
     flex: 1.2;
@@ -635,6 +642,7 @@ export const TV_PAGE_HTML = `<!doctype html>
     </div>
 
     <div id="cat-detail-screen" class="cat-screen">
+      <button id="cat-detail-back-btn" class="cat-back-btn cat-detail-back-btn">&#8592; Retour</button>
       <div id="cat-detail-photo-wrap">
         <img id="cat-detail-photo" alt="" />
         <div id="cat-detail-dots"></div>

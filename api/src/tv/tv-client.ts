@@ -54,6 +54,7 @@ export const TV_CLIENT_JS = `(function () {
   var catEmpty = document.getElementById('cat-empty');
   var catPagination = document.getElementById('cat-pagination');
   var catDetailScreen = document.getElementById('cat-detail-screen');
+  var catDetailBackBtn = document.getElementById('cat-detail-back-btn');
   var catDetailPhoto = document.getElementById('cat-detail-photo');
   var catDetailDots = document.getElementById('cat-detail-dots');
   var catDetailBrand = document.getElementById('cat-detail-brand');
@@ -82,7 +83,7 @@ export const TV_CLIENT_JS = `(function () {
     var lines = [
       'mode: ' + mode,
       'catalogScreen: ' + catalogScreen,
-      'zone: ' + (productsState ? productsState.zone : '-'),
+      'zone: ' + (catalogScreen === 'detail' && detailState ? detailState.zone : productsState ? productsState.zone : '-'),
       'playlistOpen: ' + playlistOpen,
       'controlsVisible: ' + controlsVisible,
       'currentIndex: ' + currentIndex + ' / ' + playlist.length,
@@ -592,6 +593,14 @@ export const TV_CLIENT_JS = `(function () {
     catCategoriesScreen.className = name === 'categories' ? 'cat-screen active' : 'cat-screen';
     catProductsScreen.className = name === 'products' ? 'cat-screen active' : 'cat-screen';
     catDetailScreen.className = name === 'detail' ? 'cat-screen active' : 'cat-screen';
+    if (name !== 'detail') {
+      // Le bouton « Vidéos » est partagé par les 3 écrans catalogue ; sa
+      // mise en focus ne concerne que la navigation D-pad de la fiche
+      // article (voir handleDetailKey) — on nettoie donc son surlignage
+      // dès qu'on quitte cet écran, pour ne pas le laisser « focused »
+      // sur les écrans catégories/produits qui ne gèrent pas cette zone.
+      btnExitCatalog.className = 'ctrl-btn';
+    }
     if (name === 'categories') {
       catTitle.textContent = 'Catalogue produits';
     } else if (name === 'products' && productsState) {
@@ -1216,8 +1225,9 @@ export const TV_CLIENT_JS = `(function () {
           return res.json();
         })
         .then(function (data) {
-          detailState = { product: data, imageIndex: 0, imageCount: 0 };
+          detailState = { product: data, imageIndex: 0, imageCount: 0, zone: 'photo' };
           renderDetail();
+          renderDetailNav();
           showCatalogScreen('detail');
         })
         .catch(function (err) {
@@ -1277,17 +1287,61 @@ export const TV_CLIENT_JS = `(function () {
     renderDetail();
   }
 
+  // Rangée de navigation en haut de la fiche : « ← Retour » (nouveau,
+  // toujours à gauche) et « Vidéos » (bouton partagé du topbar, réutilisé
+  // tel quel — son action reste exitCatalogMode(), inchangée).
+  function renderDetailNav() {
+    catDetailBackBtn.className =
+      detailState && detailState.zone === 'back' ? 'cat-back-btn cat-detail-back-btn focused' : 'cat-back-btn cat-detail-back-btn';
+    btnExitCatalog.className = detailState && detailState.zone === 'videos' ? 'ctrl-btn focused' : 'ctrl-btn';
+  }
+
+  // Retour à l'écran produits depuis la fiche : la grille produits n'a
+  // jamais été détruite (juste masquée par showCatalogScreen), donc le
+  // focus/scroll y sont déjà cohérents, sans re-rendu ni rechargement.
+  function goBackToProducts() {
+    showCatalogScreen('products');
+  }
+
   function handleDetailKey(action) {
     if (action === 'back') {
-      // Ré-affiche l'écran produits sans le re-générer : la grille garde
-      // exactement la position (page / focus / marque) qu'elle avait.
-      showCatalogScreen('products');
+      if (detailState.zone === 'videos') {
+        // Un niveau à la fois : depuis le bouton Vidéos, BACK revient
+        // d'abord dans la fiche (zone photo) avant de quitter vers la liste.
+        detailState.zone = 'photo';
+        renderDetailNav();
+        return;
+      }
+      goBackToProducts();
       return;
     }
+    if (detailState.zone === 'photo') {
+      if (action === 'left') {
+        moveDetailImage('left');
+      } else if (action === 'right') {
+        moveDetailImage('right');
+      } else if (action === 'up') {
+        detailState.zone = 'back';
+        renderDetailNav();
+      }
+      return;
+    }
+    // zone 'back' ou 'videos' : rangée de boutons en haut de la fiche.
     if (action === 'left') {
-      moveDetailImage('left');
+      detailState.zone = 'back';
+      renderDetailNav();
     } else if (action === 'right') {
-      moveDetailImage('right');
+      detailState.zone = 'videos';
+      renderDetailNav();
+    } else if (action === 'down') {
+      detailState.zone = 'photo';
+      renderDetailNav();
+    } else if (action === 'enter') {
+      if (detailState.zone === 'back') {
+        goBackToProducts();
+      } else {
+        exitCatalogMode();
+      }
     }
   }
 
@@ -1323,6 +1377,10 @@ export const TV_CLIENT_JS = `(function () {
 
   catBackBtn.addEventListener('click', function () {
     goBackToCategories();
+  });
+
+  catDetailBackBtn.addEventListener('click', function () {
+    goBackToProducts();
   });
 
   catalogRoot.addEventListener('click', function () {
