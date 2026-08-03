@@ -324,7 +324,7 @@ export function CategoriesPage() {
                   )}
                 </td>
                 <td>
-                  <div className="actions">
+                  <div className="actions actions-inline">
                     <button onClick={() => startEdit(category)}>
                       Modifier
                     </button>

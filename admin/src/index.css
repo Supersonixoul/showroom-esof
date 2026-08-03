@@ -224,6 +224,7 @@ tr:last-child td {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: auto;
 }
 
 @media (max-width: 640px) {
@@ -364,6 +365,16 @@ tr:last-child td {
 
 td .actions {
   max-width: 210px;
+}
+
+.actions.actions-inline {
+  flex-wrap: nowrap;
+  max-width: none;
+}
+
+.actions.actions-inline button {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .reorder-buttons {
