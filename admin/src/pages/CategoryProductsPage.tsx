@@ -273,7 +273,7 @@ export function CategoryProductsPage() {
                       </label>
                     </td>
                     <td>
-                      <div className="actions">
+                      <div className="actions actions-inline">
                         <button onClick={() => setEditingProduct(product)}>
                           Modifier
                         </button>
