@@ -291,7 +291,7 @@ export const TV_PAGE_HTML = `<!doctype html>
   }
 
   .category-card {
-    background: #f4f4f5;
+    background: #ffffff;
     border: 4px solid transparent;
     border-radius: 18px;
     display: flex;
@@ -318,9 +318,12 @@ export const TV_PAGE_HTML = `<!doctype html>
     box-shadow: 0 0 0 6px rgba(255, 204, 0, 0.35), 0 14px 26px rgba(0, 0, 0, 0.55);
     z-index: 2;
   }
-  /* Zone image extensible (~75% de la hauteur de la carte) : fond blanc,
-     object-fit: contain (jamais de rognage/déformation, convention du
-     projet — voir .prod-photo-wrap). */
+  /* Zone image extensible (~75% de la hauteur de la carte). Pas de fond ni
+     de rayon propres : la carte entière (.category-card) est déjà blanche
+     à un seul niveau, ce conteneur ne sert qu'à centrer l'image
+     (object-fit: contain, jamais de rognage/déformation — voir
+     .prod-photo-wrap). Toute la surface libérée par la suppression de
+     l'ancien panneau blanc interne revient à cette zone. */
   .cat-photo-wrap {
     flex: 1;
     min-height: 0;
@@ -328,10 +331,7 @@ export const TV_PAGE_HTML = `<!doctype html>
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #ffffff;
-    border-radius: 12px;
     overflow: hidden;
-    padding: 4px;
     box-sizing: border-box;
   }
   .cat-icon {
