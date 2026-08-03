@@ -281,6 +281,7 @@ export class CatalogService {
       items: products.map((product) => ({
         id: product.id,
         name: product.name,
+        reference: product.reference,
         brand: product.brand ? product.brand.name : null,
         disponible: product.quantiteStock > 0,
         ...(product.afficherQuantite ? { quantiteStock: product.quantiteStock } : {}),
