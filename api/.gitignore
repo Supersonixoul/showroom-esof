@@ -7,3 +7,7 @@ dist
 
 # Fichiers médias uploadés (stockage local)
 /uploads
+
+# Rapport et état de reprise du script de détourage des images produits
+/rapport_detourage.csv
+/.regenerate-image-variants-progress.json
