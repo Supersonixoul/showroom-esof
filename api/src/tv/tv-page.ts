@@ -561,10 +561,14 @@ export const TV_PAGE_HTML = `<!doctype html>
     margin: 0 0 16px;
     line-height: 1.2;
   }
-  #cat-detail-category,
-  #cat-detail-ref {
+  #cat-detail-category {
     font-size: 24px;
     opacity: 0.75;
+    margin-bottom: 8px;
+  }
+  #cat-detail-ref {
+    font-size: 30px;
+    color: #b0b0ba;
     margin-bottom: 8px;
   }
   #cat-detail-availability {

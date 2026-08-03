@@ -1236,7 +1236,13 @@ export const TV_CLIENT_JS = `(function () {
     catDetailBrand.textContent = p.brand ? p.brand.name : '';
     catDetailName.textContent = p.name;
     catDetailCategory.textContent = p.category.name;
-    catDetailRef.textContent = p.reference ? 'Réf. ' + p.reference : '';
+    if (p.reference) {
+      catDetailRef.textContent = 'Réf.\u00A0: ' + p.reference;
+      catDetailRef.style.display = '';
+    } else {
+      catDetailRef.textContent = '';
+      catDetailRef.style.display = 'none';
+    }
     var detailAvailability = formatAvailabilityLabel(p);
     catDetailAvailability.textContent = detailAvailability.text;
     catDetailAvailability.className =
