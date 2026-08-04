@@ -314,6 +314,107 @@ tr:last-child td {
   margin: 0 auto 20px;
 }
 
+/* Page produit : formulaire (gauche) + aperçu image (droite) en grille deux
+   colonnes, pleine largeur (le formulaire n'est plus contraint/centré par
+   .form-panel dans ce contexte précis). */
+.product-form-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.product-form-layout .form-panel {
+  max-width: none;
+  margin: 0;
+}
+
+.product-image-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  position: sticky;
+  top: 16px;
+}
+
+.product-image-panel h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.product-image-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+.product-image-preview img {
+  width: 100%;
+  height: 100%;
+  max-height: 420px;
+  object-fit: contain;
+}
+
+.product-image-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.product-image-empty-icon {
+  font-size: 40px;
+  opacity: 0.5;
+}
+
+.product-image-thumbs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.product-image-thumb {
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.product-image-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.product-image-thumb.active {
+  border-color: var(--accent);
+}
+
+@media (max-width: 1024px) {
+  .product-form-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .product-image-panel {
+    position: static;
+    order: -1;
+  }
+}
+
 .form-row {
   display: flex;
   gap: 12px;
@@ -439,61 +540,56 @@ button.icon-btn {
   width: 220px;
 }
 
-/* Répartition des colonnes du tableau « Produits » : le Nom reçoit
-   l'essentiel de la largeur disponible, les autres colonnes restent
-   compactes. Scopé à cette table (sélecteur générique `table` inchangé). */
+/* Tableau « Produits » : largeur des colonnes dictée par leur contenu
+   (table-layout: auto), plafonnée à 1300px pour éviter le vide excessif
+   sur grand écran. Padding uniforme pour séparer nettement chaque colonne. */
 .products-table {
-  table-layout: fixed;
+  table-layout: auto;
+  width: auto;
+  max-width: 1300px;
 }
 
-.products-table th:nth-child(1),
-.products-table td:nth-child(1) {
-  width: 60px;
+.products-table th,
+.products-table td {
+  padding: 12px 14px;
+  white-space: nowrap;
 }
 
-.products-table th:nth-child(2),
-.products-table td:nth-child(2) {
-  width: 56px;
+/* Seule exception tolérée au nowrap : « Mise en avant » peut passer sur
+   deux lignes, mais uniquement entre mots entiers (jamais au milieu d'un
+   mot — pas de overflow-wrap/word-break forcés ici). */
+.products-table th:nth-child(10) {
+  white-space: normal;
 }
 
-.products-table th:nth-child(3),
-.products-table td:nth-child(3) {
-  width: 70px;
+/* Colonne Nom : largeur libre jusqu'à 400px, au-delà troncature sur une
+   seule ligne avec ellipsis (le nom complet reste accessible via
+   l'attribut title porté par le span). */
+.cell-ellipsis {
+  display: inline-block;
+  max-width: 400px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
 }
 
-.products-table th:nth-child(4),
-.products-table td:nth-child(4) {
-  width: 74px;
+/* Référence / Marque / Catégorie : valeurs généralement courtes, mais
+   plafonnées pour éviter qu'une valeur exceptionnellement longue ne fasse
+   exploser la largeur de la colonne (nom complet toujours dispo via title). */
+.cell-ellipsis-sm {
+  max-width: 150px;
 }
 
-.products-table th:nth-child(6),
-.products-table td:nth-child(6) {
-  width: 74px;
+/* Boutons d'action de la table Produits (Modifier/Statuts/Supprimer) :
+   toujours sur une seule ligne. */
+td .products-table-actions {
+  max-width: none;
 }
 
-.products-table th:nth-child(7),
-.products-table td:nth-child(7) {
-  width: 82px;
-}
-
-.products-table th:nth-child(8),
-.products-table td:nth-child(8) {
-  width: 60px;
-}
-
-.products-table th:nth-child(9),
-.products-table td:nth-child(9) {
-  width: 82px;
-}
-
-.products-table th:nth-child(10),
-.products-table td:nth-child(10) {
-  width: 78px;
-}
-
-.products-table th:nth-child(11),
-.products-table td:nth-child(11) {
-  width: 230px;
+.products-table-actions button {
+  padding: 6px 8px;
+  font-size: 13px;
 }
 
 .cell-clamp {

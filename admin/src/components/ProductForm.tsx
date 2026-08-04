@@ -34,6 +34,15 @@ export function ProductForm({ product, onSuccess, onCancel }: Props) {
     queryKey: ['categories'],
     queryFn: categoriesApi.list,
   });
+  // La liste des produits (utilisée par les pages appelantes pour la prop
+  // `product`) ne renvoie que la première image par produit. Le détail
+  // complet est nécessaire pour afficher toute la galerie dans le panneau
+  // d'aperçu, donc on le recharge ici en édition.
+  const { data: productDetail } = useQuery({
+    queryKey: ['product-detail', editingId],
+    queryFn: () => productsApi.get(editingId as string),
+    enabled: !!editingId,
+  });
 
   const [name, setName] = useState(product?.name ?? '');
   const [reference, setReference] = useState(product?.reference ?? '');
@@ -46,13 +55,24 @@ export function ProductForm({ product, onSuccess, onCancel }: Props) {
   const [subcategoryId, setSubcategoryId] = useState(product?.subcategoryId ?? '');
   const [gammeId, setGammeId] = useState(product?.gammeId ?? '');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    product?.images && product.images.length > 0
-      ? mediaUrl(product.images[0].url)
-      : null,
-  );
+  const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null);
+  const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const existingImages = (editingId ? productDetail?.images : product?.images) ?? [];
+  // Priorité d'affichage : l'image tout juste sélectionnée (pas encore envoyée)
+  // si aucune miniature existante n'a été choisie explicitement, sinon l'image
+  // existante sélectionnée (ou la première par défaut).
+  const showingPending = pendingImagePreview !== null && activeImageIndex === null;
+  const activeExistingImage = showingPending
+    ? null
+    : existingImages[activeImageIndex ?? 0] ?? null;
+  const mainPreviewSrc = showingPending
+    ? pendingImagePreview
+    : activeExistingImage
+    ? mediaUrl(activeExistingImage.imageVariants?.medium ?? activeExistingImage.url)
+    : null;
 
   const { data: subcategories } = useQuery({
     queryKey: ['subcategories', categoryId],
@@ -87,7 +107,8 @@ export function ProductForm({ product, onSuccess, onCancel }: Props) {
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setImageFile(file);
-    setImagePreview(file ? URL.createObjectURL(file) : null);
+    setPendingImagePreview(file ? URL.createObjectURL(file) : null);
+    setActiveImageIndex(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -133,6 +154,7 @@ export function ProductForm({ product, onSuccess, onCancel }: Props) {
       {mutationError && (
         <div className="error-banner">{(mutationError as Error).message}</div>
       )}
+      <div className="product-form-layout">
       <form className="form-panel" onSubmit={handleSubmit}>
         <div className="form-row">
           <label style={{ flex: '0 1 calc((100% - 36px) / 4)' }}>
@@ -230,29 +252,17 @@ export function ProductForm({ product, onSuccess, onCancel }: Props) {
               rows={2}
             />
           </label>
-          <label>
-            Prix (F)
-            <input
-              type="number"
-              step="1"
-              min="0"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-            />
-          </label>
-        </div>
-        <div className="form-row">
-          <label>
-            Quantité en stock
-            <input
-              type="number"
-              step="1"
-              min="0"
-              value={quantiteStock}
-              onChange={(e) => setQuantiteStock(e.target.value)}
-            />
-          </label>
-          <div className="checkbox-row">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 180 }}>
+            <label>
+              Prix (F)
+              <input
+                type="number"
+                step="1"
+                min="0"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+            </label>
             <label className="checkbox-label">
               <input
                 type="checkbox"
@@ -265,29 +275,33 @@ export function ProductForm({ product, onSuccess, onCancel }: Props) {
         </div>
         <div className="form-row">
           <label>
-            Image
-            <div className="actions" style={{ alignItems: 'center' }}>
-              {imagePreview && (
-                <div className="product-photo-frame" style={{ width: 60, height: 60 }}>
-                  <img src={imagePreview} alt="" loading="lazy" />
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => imageInputRef.current?.click()}
-              >
-                Choisir une image
-              </button>
-              {imageFile && <span className="muted">{imageFile.name}</span>}
-              <input
-                ref={imageInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                style={{ display: 'none' }}
-              />
-            </div>
+            Quantité en stock
+            <input
+              type="number"
+              step="1"
+              min="0"
+              value={quantiteStock}
+              onChange={(e) => setQuantiteStock(e.target.value)}
+            />
           </label>
+        </div>
+        <div className="form-row">
+          <div className="actions" style={{ alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+            >
+              Choisir une image
+            </button>
+            {imageFile && <span className="muted">{imageFile.name}</span>}
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              style={{ display: 'none' }}
+            />
+          </div>
         </div>
         <div className="actions">
           <button type="submit" className="primary" disabled={saving || uploadingImage}>
@@ -301,6 +315,39 @@ export function ProductForm({ product, onSuccess, onCancel }: Props) {
           {uploadingImage && <span className="muted">Envoi de l'image…</span>}
         </div>
       </form>
+      <aside className="product-image-panel">
+        <h3>Image du produit</h3>
+        <div className="product-image-preview">
+          {mainPreviewSrc ? (
+            <img src={mainPreviewSrc} alt="" />
+          ) : (
+            <div className="product-image-empty">
+              <span className="product-image-empty-icon" aria-hidden="true">
+                🖼️
+              </span>
+              <p>Aucune image associée</p>
+            </div>
+          )}
+        </div>
+        {existingImages.length > 1 && (
+          <div className="product-image-thumbs">
+            {existingImages.map((image, index) => (
+              <button
+                key={image.id}
+                type="button"
+                className={
+                  'product-image-thumb' +
+                  (!showingPending && (activeImageIndex ?? 0) === index ? ' active' : '')
+                }
+                onClick={() => setActiveImageIndex(index)}
+              >
+                <img src={mediaUrl(image.imageVariants?.thumb ?? image.url)} alt="" loading="lazy" />
+              </button>
+            ))}
+          </div>
+        )}
+      </aside>
+      </div>
     </>
   );
 }
