@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
+  IsPositive,
   IsString,
   IsUUID,
   MaxLength,
@@ -28,6 +29,13 @@ export class CreateProductDto {
   @IsNumber()
   @Min(0)
   price?: number;
+
+  /** Facultatif — voir `assertPromoPriceBelowNormalPrice` (products/promo-price.util.ts)
+   * pour la règle de cohérence avec `price`, partagée avec le modal Statuts. */
+  @IsOptional()
+  @IsNumber({}, { message: 'Le prix promo doit être un nombre' })
+  @IsPositive({ message: 'Le prix promo doit être un nombre strictement positif' })
+  promoPrice?: number;
 
   @IsOptional()
   @IsBoolean()

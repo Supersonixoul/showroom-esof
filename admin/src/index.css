@@ -551,7 +551,7 @@ button.icon-btn {
 
 .products-table th,
 .products-table td {
-  padding: 12px 14px;
+  padding: 10px 6px;
   white-space: nowrap;
 }
 
@@ -585,10 +585,11 @@ button.icon-btn {
    toujours sur une seule ligne. */
 td .products-table-actions {
   max-width: none;
+  gap: 5px;
 }
 
 .products-table-actions button {
-  padding: 6px 8px;
+  padding: 5px 6px;
   font-size: 13px;
 }
 
@@ -683,6 +684,39 @@ td .products-table-actions {
   padding: 20px;
   width: 100%;
   max-width: 640px;
+}
+
+/* Petite boîte de message (erreur/confirmation), affichée au-dessus d'une
+   modale existante — remplace window.alert() pour éviter le préfixe
+   "<host> indique" imposé par le navigateur. */
+.messagebox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 25, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 200;
+}
+
+.messagebox {
+  background: var(--panel);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 20px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+
+.messagebox p {
+  color: var(--danger);
+  margin: 0 0 16px;
+}
+
+.messagebox .actions {
+  justify-content: center;
 }
 
 .tag {

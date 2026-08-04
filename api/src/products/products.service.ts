@@ -17,6 +17,7 @@ import { ImportProductRowDto } from './dto/import-product-row.dto';
 import { ImportReport, ImportReportRow } from './dto/import-report';
 import { buildImageVariants } from './image-variants.util';
 import { normalizeForComparison } from './normalize.util';
+import { assertPromoPriceBelowNormalPrice } from './promo-price.util';
 
 @Injectable()
 export class ProductsService {
@@ -28,6 +29,7 @@ export class ProductsService {
     if (dto.reference) {
       await this.ensureReferenceNameAvailable(dto.reference, dto.name);
     }
+    assertPromoPriceBelowNormalPrice(dto.price ?? null, dto.promoPrice ?? null);
 
     const { _max } = await this.prisma.product.aggregate({
       _max: { displayOrder: true },
@@ -119,6 +121,20 @@ export class ProductsService {
     if (resolvedReference && (dto.reference !== undefined || dto.name !== undefined)) {
       await this.ensureReferenceNameAvailable(resolvedReference, resolvedName, id);
     }
+
+    // Si le prix normal et/ou le prix promo changent, revalider leur
+    // cohérence en tenant compte des valeurs déjà enregistrées pour le
+    // champ non modifié (ex. baisser le prix normal sous un prix promo
+    // existant doit être rejeté, pas seulement l'inverse).
+    const resolvedPrice =
+      dto.price !== undefined ? dto.price : product.price != null ? Number(product.price) : null;
+    const resolvedPromoPrice =
+      dto.promoPrice !== undefined
+        ? dto.promoPrice
+        : product.promoPrice != null
+        ? Number(product.promoPrice)
+        : null;
+    assertPromoPriceBelowNormalPrice(resolvedPrice, resolvedPromoPrice);
 
     return this.prisma.product.update({ where: { id }, data: dto });
   }
@@ -354,9 +370,14 @@ export class ProductsService {
    * voir catalog.service.ts `getFeaturedProducts` pour l'endpoint public
    * consommé par les apps. Règles :
    * - `onPromotion` et `onSale` sont mutuellement exclusifs.
-   * - Quand `onPromotion`/`onSale` est (ou reste) actif, le prix réduit
-   *   correspondant est obligatoire et doit être strictement inférieur au
-   *   prix normal du produit.
+   * - Solde : quand `onSale` est (ou reste) actif, le prix solde est
+   *   obligatoire et doit être strictement inférieur au prix normal du
+   *   produit.
+   * - Promotion : statut d'affichage indépendant du prix — le prix promo
+   *   est facultatif. S'il est renseigné ET que le produit a un prix
+   *   normal, il doit être strictement inférieur à celui-ci. S'il est
+   *   renseigné sans prix normal, il est accepté tel quel. Sans prix promo
+   *   saisi, le badge promotion seul suffit.
    * - Quand `onPromotion`/`onSale` est désactivé, le prix réduit
    *   correspondant est remis à `null`.
    */
@@ -395,7 +416,21 @@ export class ProductsService {
       return candidate;
     };
 
-    const promoPrice = resolveReducedPrice(onPromotion, dto.promoPrice, product.promoPrice, 'promo');
+    // Prix promo : facultatif (statut d'affichage), contrairement au prix
+    // solde qui reste obligatoire — voir la doc de `updateStatus` ci-dessus.
+    const resolvePromoPrice = (
+      active: boolean,
+      provided: number | null | undefined,
+      current: unknown,
+    ): number | null => {
+      if (!active) return null;
+      const candidate = provided !== undefined ? provided : current != null ? Number(current) : null;
+      if (candidate == null) return null;
+      assertPromoPriceBelowNormalPrice(normalPrice, candidate);
+      return candidate;
+    };
+
+    const promoPrice = resolvePromoPrice(onPromotion, dto.promoPrice, product.promoPrice);
     const salePrice = resolveReducedPrice(onSale, dto.salePrice, product.salePrice, 'solde');
 
     return this.prisma.product.update({

@@ -9,10 +9,26 @@ interface Props {
   onClose: () => void;
 }
 
+/** Extrait le message d'erreur lisible d'une erreur API (le client HTTP
+ * renvoie `${status} ${statusText}: ${jsonBody}` — on isole ici le champ
+ * `message` du corps JSON pour éviter d'afficher le JSON brut à l'utilisateur). */
+function extractErrorMessage(error: unknown): string {
+  const raw = (error as Error).message ?? 'Une erreur est survenue';
+  const jsonStart = raw.indexOf('{');
+  if (jsonStart === -1) return raw;
+  try {
+    const body = JSON.parse(raw.slice(jsonStart));
+    return typeof body.message === 'string' ? body.message : raw;
+  } catch {
+    return raw;
+  }
+}
+
 /** Modale de gestion des statuts de mise en avant (nouveau/promo/solde)
  * d'un produit, ouverte depuis le bouton « Statuts » de ProductsPage. */
 export function ProductStatusDialog({ product, onClose }: Props) {
   const queryClient = useQueryClient();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isNew, setIsNew] = useState(product.isNew);
   const [onPromotion, setOnPromotion] = useState(product.onPromotion);
   const [promoPrice, setPromoPrice] = useState(
@@ -36,6 +52,9 @@ export function ProductStatusDialog({ product, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       onClose();
     },
+    onError: (error) => {
+      setErrorMessage(extractErrorMessage(error));
+    },
   });
 
   return (
@@ -47,10 +66,6 @@ export function ProductStatusDialog({ product, onClose }: Props) {
             ✕
           </button>
         </div>
-
-        {mutation.error && (
-          <div className="error-banner">{(mutation.error as Error).message}</div>
-        )}
 
         <p className="muted">Prix normal : {formatPrix(product.price)}</p>
 
@@ -80,7 +95,7 @@ export function ProductStatusDialog({ product, onClose }: Props) {
           {onPromotion && (
             <div className="form-row">
               <label>
-                Prix promo (FCFA)
+                Prix promo (FCFA) — optionnel
                 <input
                   type="number"
                   step="1"
@@ -89,6 +104,11 @@ export function ProductStatusDialog({ product, onClose }: Props) {
                   onChange={(e) => setPromoPrice(e.target.value)}
                 />
               </label>
+              {product.price == null && (
+                <p className="muted">
+                  Aucun prix normal renseigné : le prix promo est facultatif.
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -135,6 +155,25 @@ export function ProductStatusDialog({ product, onClose }: Props) {
           </button>
         </div>
       </div>
+
+      {errorMessage && (
+        <div
+          className="messagebox-overlay"
+          onClick={(e) => {
+            e.stopPropagation();
+            setErrorMessage(null);
+          }}
+        >
+          <div className="messagebox" onClick={(e) => e.stopPropagation()}>
+            <p>{errorMessage}</p>
+            <div className="actions">
+              <button type="button" className="primary" onClick={() => setErrorMessage(null)}>
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
